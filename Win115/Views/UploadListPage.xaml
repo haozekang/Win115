@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Win115.Views.UploadListPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Win115.Views"
+    xmlns:m="using:Win115.Models"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="using:CommunityToolkit.WinUI"
+    xmlns:vm="using:Win115.ViewModels"
+    Margin="15,15,15,15"
+    d:DataContext="{d:DesignInstance vm:UploadListViewModel,
+                                     IsDesignTimeCreatable=False}"
+    mc:Ignorable="d">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <CommandBar
+            HorizontalAlignment="Left"
+            IsDynamicOverflowEnabled="False"
+            OverflowButtonVisibility="Collapsed">
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.ClearFinishCommand}"
+                Icon="{ui:FontIcon Glyph='&#xEA99;'}"
+                ToolTipService.ToolTip="清除已完成" />
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.PauseAllCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE769;'}"
+                ToolTipService.ToolTip="全部暂停" />
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.StartAllCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE768;'}"
+                ToolTipService.ToolTip="全部继续" />
+        </CommandBar>
+        <ListView
+            Grid.Row="1"
+            MinWidth="800"
+            Margin="0,5,0,0"
+            ItemsSource="{x:Bind viewModel.UploadItems, Mode=OneWay}">
+            <ListView.Header>
+                <controls:DataTable Margin="12,0,0,0">
+                    <controls:DataColumn
+                        Content="文件名"
+                        DesiredWidth="*"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="140"
+                        Content="大小"
+                        DesiredWidth="140"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="200"
+                        Content="进度"
+                        DesiredWidth="200"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="120"
+                        Content="操作"
+                        DesiredWidth="120"
+                        FontWeight="Bold" />
+                </controls:DataTable>
+            </ListView.Header>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="m:UploadItemModel">
+                    <controls:DataRow>
+                        <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{x:Bind Size, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind Progress, Mode=OneWay}" />
+                        <StackPanel
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="5">
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind OpenLocalCommand}"
+                                Foreground="{ThemeResource TextSelectionHighlightColorThemeBrush}"
+                                ToolTipService.ToolTip="打开本地">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE838;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind OpenRemoteCommand}"
+                                Foreground="{ThemeResource AccentFillColorSelectedTextBackgroundBrush}"
+                                ToolTipService.ToolTip="打开远程">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE753;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                x:Name="btn_delete_item"
+                                Padding="5"
+                                Click="btn_delete_item_Click"
+                                Foreground="{ThemeResource SystemControlErrorTextForegroundBrush}"
+                                ToolTipService.ToolTip="删除">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE74D;" />
+                                </Button.Content>
+                            </Button>
+                            <TeachingTip
+                                Title="确认？"
+                                ActionButtonCommand="{x:Bind DeleteCommand}"
+                                ActionButtonContent="确认"
+                                CloseButtonContent="取消"
+                                IsOpen="{x:Bind ShowDeleteTip, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PreferredPlacement="Top"
+                                Target="{Binding ElementName=btn_delete_item}">
+                                <TeachingTip.IconSource>
+                                    <SymbolIconSource Symbol="Delete" />
+                                </TeachingTip.IconSource>
+                                <TeachingTip.Content>
+                                    <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                                        <Run Text="您确认要删除[" />
+                                        <Run Foreground="Red" Text="{x:Bind Name}" />
+                                        <Run Text="]吗？" />
+                                    </TextBlock>
+                                </TeachingTip.Content>
+                            </TeachingTip>
+                        </StackPanel>
+                    </controls:DataRow>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

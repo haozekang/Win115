@@ -23,6 +23,13 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+Package.appxmanifest
+
+.vs/
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json

@@ -1,0 +1,107 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.WinUI.Controls;
+using Tanovo.ExtensionMethods;
+using Win115.Models;
+
+namespace Win115.ViewModels
+{
+    public partial class AboutViewModel : ObservableRecipient
+    {
+        [ObservableProperty]
+        public partial UserInfoModel User { get; set; }
+
+        [ObservableProperty]
+        public partial MarkdownConfig MdConfig { get; set; } = new MarkdownConfig();
+
+        [ObservableProperty]
+        public partial string AboutMdText { get; set; }
+
+        public AboutViewModel(UserInfoModel user)
+        {
+            User = user;
+
+            AboutMdText = @"
+# 115 Plus WinUI版本
+
+基于 [115 网盘开放平台](https://open.115.com/) 的第三方开源桌面客户端，使用 **WinUI 技术** 构建，支持文件管理、下载、OSS 分片上传和视频播放。
+
+## 首先
+我也不知道该写些啥。先是吐槽一下115吧，没有PC客户端，很不自在！
+
+## 其次
+该项目还在发展，功能后续会陆续添加上的！
+
+## 下载
+
+Microsoft Store 搜索[115 Plus]
+
+目前仅支持 Windows 平台，完善后基于 AvaloniaUI 研发跨端版本。
+
+## 功能
+
+### 用户
+
+- [x] 手机扫码登录
+- [x] 用户信息查看
+
+### 文件管理
+
+- [x] 文件/文件夹列表（支持列表/网格视图切换、自定义排序）
+- [x] 文件（夹）删除
+- [x] 新建文件夹
+- [ ] 文件详情查看
+- [ ] 文件搜索
+- [ ] 文件（夹）复制、移动、重命名
+
+### 文件下载
+
+- [x] 下载
+- [ ] 断点续传
+- [ ] 文件夹递归下载
+- [ ] 下载暂停/恢复/重试
+- [ ] 下载任务持久化（LiteDb）
+
+### 文件上传
+
+- [ ] 文件和文件夹上传
+- [ ] OSS 分片上传（支持大文件）
+- [ ] 秒传检测（SHA1 预校验）
+- [ ] 断点续传
+- [ ] 上传暂停/继续
+
+### 视频播放
+
+- [ ] 在线视频播放
+- [ ] 播放进度记忆与恢复
+- [ ] 视频字幕
+
+### 云下载（离线下载）
+
+- [ ] 链接离线下载
+- [ ] BT 种子解析下载
+- [ ] 云下载任务列表与管理
+- [ ] 下载配额查看
+- [ ] 任务文件直接打开
+
+### 回收站
+
+- [ ] 文件还原
+- [ ] 删除/清空回收站
+
+### 系统
+
+- [x] 深色/浅色主题（跟随系统）
+- [ ] 应用内自动更新
+- [ ] 窗口状态保存（位置、大小）
+
+## 致谢
+
+项目很大程序上借鉴了115+的界面，感谢 [115+作者](https://github.com/lvzhenbo/115-plus-desktop) 的贡献支持。
+
+## 许可证
+
+[MIT](LICENSE)
+".StringTrim();
+        }
+    }
+}

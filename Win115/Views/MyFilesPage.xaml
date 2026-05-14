@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Win115.Views.MyFilesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Win115.Views"
+    xmlns:m="using:Win115.Models"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="using:CommunityToolkit.WinUI"
+    xmlns:vm="using:Win115.ViewModels"
+    Margin="5,5,5,5"
+    d:DataContext="{d:DesignInstance vm:MyFilesViewModel,
+                                     IsDesignTimeCreatable=False}"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <MenuFlyout x:Key="item_menu">
+            <MenuFlyoutItem
+                Click="menu_open_Click"
+                Icon="{ui:FontIcon Glyph='&#xE838;'}"
+                Text="打开" />
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.RefreshFilesCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE72C;'}"
+                Text="刷新" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE896;'}" Text="下载" />
+            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE898;'}" Text="上传文件" />-->
+            <MenuFlyoutSeparator />
+            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8C8;'}" Text="复制到" />
+            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8DE;'}" Text="移动到" />
+            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8AC;'}" Text="重命名" />
+            <MenuFlyoutSeparator />-->
+            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE946;'}" Text="详情" />-->
+            <MenuFlyoutItem
+                Foreground="Red"
+                Icon="{ui:FontIcon Glyph='&#xE74D;'}"
+                Text="删除" />
+        </MenuFlyout>
+        <DataTemplate x:Key="items_header" x:DataType="vm:MyFilesViewModel">
+            <controls:DataTable Margin="10,0,0,0">
+                <controls:DataColumn
+                    MinWidth="120"
+                    DesiredWidth="*"
+                    FontWeight="Bold">
+                    <controls:DataColumn.Content>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox
+                                MinWidth="34"
+                                Margin="0"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Canvas.ZIndex="98"
+                                Checked="chk_all_Checked"
+                                IsChecked="{x:Bind IsCheckAll, Mode=TwoWay}"
+                                Unchecked="chk_all_Unchecked" />
+                            <TextBlock
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                PointerEntered="sort_PointerEntered"
+                                Tag="name"
+                                Tapped="sort_Tapped"
+                                Text="名称" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74A;"
+                                PointerEntered="sort_PointerEntered"
+                                Tag="name"
+                                Tapped="sort_Tapped"
+                                Visibility="{x:Bind SortNameUpVisibility, Mode=OneWay}" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74B;"
+                                PointerEntered="sort_PointerEntered"
+                                Tag="name"
+                                Tapped="sort_Tapped"
+                                Visibility="{x:Bind SortNameDownVisibility, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Column="3"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                PointerEntered="sort_PointerEntered"
+                                Tag="name"
+                                Tapped="sort_Tapped" />
+                        </Grid>
+                    </controls:DataColumn.Content>
+                </controls:DataColumn>
+                <controls:DataColumn
+                    MinWidth="120"
+                    Margin="30,0,0,0"
+                    DesiredWidth="120"
+                    FontWeight="Bold">
+                    <controls:DataColumn.Content>
+                        <Grid
+                            PointerEntered="sort_PointerEntered"
+                            Tag="size"
+                            Tapped="sort_Tapped">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Text="大小" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74A;"
+                                Visibility="{x:Bind SortSizeUpVisibility, Mode=OneWay}" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74B;"
+                                Visibility="{x:Bind SortSizeDownVisibility, Mode=OneWay}" />
+                        </Grid>
+                    </controls:DataColumn.Content>
+                </controls:DataColumn>
+                <controls:DataColumn
+                    MinWidth="100"
+                    Margin="30,0,0,0"
+                    DesiredWidth="100"
+                    FontWeight="Bold">
+                    <controls:DataColumn.Content>
+                        <Grid
+                            PointerEntered="sort_PointerEntered"
+                            Tag="fileType"
+                            Tapped="sort_Tapped">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Text="种类" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74A;"
+                                Visibility="{x:Bind SortFileTypeUpVisibility, Mode=OneWay}" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74B;"
+                                Visibility="{x:Bind SortFileTypeDownVisibility, Mode=OneWay}" />
+                        </Grid>
+                    </controls:DataColumn.Content>
+                </controls:DataColumn>
+                <controls:DataColumn
+                    MinWidth="150"
+                    Margin="30,0,0,0"
+                    DesiredWidth="150"
+                    FontWeight="Bold">
+                    <controls:DataColumn.Content>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Text="创建时间" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74A;"
+                                Visibility="{x:Bind SortCreateTimeUpVisibility, Mode=OneWay}" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74B;"
+                                Visibility="{x:Bind SortCreateTimeDownVisibility, Mode=OneWay}" />
+                        </Grid>
+                    </controls:DataColumn.Content>
+                </controls:DataColumn>
+                <controls:DataColumn
+                    MinWidth="180"
+                    Margin="30,0,0,0"
+                    DesiredWidth="180"
+                    FontWeight="Bold">
+                    <controls:DataColumn.Content>
+                        <Grid
+                            PointerEntered="sort_PointerEntered"
+                            Tag="updateTime"
+                            Tapped="sort_Tapped">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Text="修改时间" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74A;"
+                                Visibility="{x:Bind SortUpdateTimeUpVisibility, Mode=OneWay}" />
+                            <FontIcon
+                                Grid.Column="2"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Glyph="&#xE74B;"
+                                Visibility="{x:Bind SortUpdateTimeDownVisibility, Mode=OneWay}" />
+                        </Grid>
+                    </controls:DataColumn.Content>
+                </controls:DataColumn>
+            </controls:DataTable>
+        </DataTemplate>
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ProgressRing
+            Grid.RowSpan="99"
+            Grid.ColumnSpan="99"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Canvas.ZIndex="99"
+            IsActive="{x:Bind viewModel.IsBusy, Mode=OneWay}" />
+        <CommandBar
+            HorizontalAlignment="Left"
+            IsDynamicOverflowEnabled="False"
+            OverflowButtonVisibility="Collapsed">
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.ParentDirectoryCommand}"
+                Icon="Up"
+                IsEnabled="{x:Bind viewModel.CanParentDirectory, Mode=OneWay}"
+                ToolTipService.ToolTip="上级目录" />
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.RefreshFilesCommand}"
+                Icon="Refresh"
+                IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
+                ToolTipService.ToolTip="刷新" />
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.NewFolderCommand}"
+                Icon="NewFolder"
+                IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
+                ToolTipService.ToolTip="新建文件夹" />
+            <!--<AppBarButton
+                Width="45"
+                Icon="Upload"
+                IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
+                ToolTipService.ToolTip="上传" />-->
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.DownloadSelectedCommand}"
+                Icon="Download"
+                IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
+                ToolTipService.ToolTip="下载" />
+            <!--<AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.CopyToCommand}"
+                Icon="Copy"
+                IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
+                ToolTipService.ToolTip="复制到" />
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.MoveToCommand}"
+                Icon="MoveToFolder"
+                IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
+                ToolTipService.ToolTip="移动到" />-->
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.DeleteSelectedCommand}"
+                Foreground="Red"
+                Icon="Delete"
+                IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
+                ToolTipService.ToolTip="删除" />
+        </CommandBar>
+        <CommandBar
+            HorizontalAlignment="Right"
+            IsDynamicOverflowEnabled="False"
+            OverflowButtonVisibility="Collapsed">
+            <AppBarToggleButton
+                Width="45"
+                Checked="chk_viewAll_Checked"
+                Icon="ViewAll"
+                IsChecked="{x:Bind viewModel.IsViewAllView, Mode=OneWay}"
+                ToolTipService.ToolTip="网格视图" />
+            <AppBarToggleButton
+                Width="45"
+                Checked="chk_list_Checked"
+                Icon="List"
+                IsChecked="{x:Bind viewModel.IsListView, Mode=OneWay}"
+                ToolTipService.ToolTip="列表视图" />
+        </CommandBar>
+        <Border
+            Grid.Row="1"
+            Margin="5,0,5,5"
+            Padding="10,0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontWeight="Bold"
+                    Text="路径：" />
+                <BreadcrumbBar
+                    Grid.Row="1"
+                    ItemClicked="path_Click"
+                    ItemsSource="{x:Bind viewModel.PathItems, Mode=OneWay}" />
+            </StackPanel>
+        </Border>
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <ContentControl
+                Grid.Row="0"
+                Content="{x:Bind viewModel}"
+                ContentTemplate="{StaticResource items_header}"
+                Visibility="{x:Bind viewModel.ViewAllVisibility, Mode=OneWay}" />
+            <ItemsView
+                x:Name="iv"
+                Grid.Row="1"
+                MinWidth="800"
+                Margin="14,5,14,0"
+                IsItemInvokedEnabled="False"
+                ItemsSource="{x:Bind viewModel.FileItems, Mode=OneWay}"
+                SelectionChanged="iv_SelectionChanged"
+                SelectionMode="Multiple"
+                Visibility="{x:Bind viewModel.ViewAllVisibility, Mode=OneWay}">
+                <ItemsView.ItemTemplate>
+                    <DataTemplate x:DataType="m:MyFileItemModel">
+                        <ItemContainer
+                            ContextFlyout="{StaticResource item_menu}"
+                            DoubleTapped="item_DoubleTapped"
+                            Tag="{x:Bind Id}">
+                            <StackPanel Margin="0,0,0,0" VerticalAlignment="Center">
+                                <FontIcon
+                                    VerticalAlignment="Center"
+                                    FontSize="24"
+                                    Glyph="{x:Bind FileTypeIcon, Mode=OneWay}" />
+                                <TextBlock
+                                    Margin="8,10,8,0"
+                                    HorizontalAlignment="Center"
+                                    Text="{x:Bind Name, Mode=OneWay}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </ItemContainer>
+                    </DataTemplate>
+                </ItemsView.ItemTemplate>
+                <ItemsView.Layout>
+                    <UniformGridLayout
+                        MinColumnSpacing="5"
+                        MinItemHeight="90"
+                        MinItemWidth="100"
+                        MinRowSpacing="5" />
+                </ItemsView.Layout>
+            </ItemsView>
+            <ListView
+                x:Name="lv"
+                Grid.Row="1"
+                MinWidth="800"
+                Margin="0,0,0,0"
+                DoubleTapped="item_DoubleTapped"
+                Header="{x:Bind viewModel}"
+                HeaderTemplate="{StaticResource items_header}"
+                IsDoubleTapEnabled="True"
+                IsItemClickEnabled="True"
+                ItemsSource="{x:Bind viewModel.FileItems, Mode=OneWay}"
+                SelectionChanged="lv_SelectionChanged"
+                SelectionMode="Multiple"
+                Visibility="{x:Bind viewModel.ListVisibility, Mode=OneWay}">
+                <ListView.ItemContainerStyle>
+                    <Style BasedOn="{StaticResource DefaultListViewItemStyle}" TargetType="ListViewItem">
+                        <Setter Property="ContextFlyout" Value="{StaticResource item_menu}" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="m:MyFileItemModel">
+                        <controls:DataRow>
+                            <StackPanel
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal"
+                                Spacing="8">
+                                <FontIcon
+                                    Width="24"
+                                    Height="24"
+                                    Glyph="{x:Bind FileTypeIcon, Mode=OneWay}" />
+                                <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
+                            </StackPanel>
+                            <TextBlock
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Text="{x:Bind SizeText, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                Margin="0,0,8,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Text="{x:Bind FileTypeText, Mode=OneWay}" />
+                            <TextBlock
+                                Margin="0,0,8,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Text="{x:Bind CreateTimeText, Mode=OneWay}" />
+                            <TextBlock
+                                Margin="0,0,8,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Text="{x:Bind UpdateTimeText, Mode=OneWay}" />
+                        </controls:DataRow>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+        <StackPanel
+            Grid.Row="3"
+            Margin="10,5,10,0"
+            Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center">
+                <Run Text="共" />
+                <Run FontWeight="Bold" Text="{x:Bind viewModel.CurPageTotal, Mode=OneWay}" />
+                <Run Text="项" />
+            </TextBlock>
+        </StackPanel>
+        <StackPanel
+            Grid.Row="3"
+            Margin="10,5,10,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <CommandBar IsDynamicOverflowEnabled="False" OverflowButtonVisibility="Collapsed">
+                <AppBarButton
+                    Width="40"
+                    Click="btn_previousPage_Click"
+                    Icon="{ui:FontIcon Glyph='&#xE76B;'}"
+                    IsEnabled="{x:Bind viewModel.CanPreviousPage, Mode=OneWay}" />
+                <!--<AppBarToggleButton
+                    x:Name="btn_previousPage"
+                    Width="40"
+                    Click="btn_previousPage_Click"
+                    Content="{x:Bind viewModel.PageIndexP, Mode=OneWay}"
+                    Visibility="{x:Bind viewModel.PageIndexPVisibility, Mode=OneWay}" />-->
+                <AppBarToggleButton
+                    Width="40"
+                    Content="{x:Bind viewModel.PageIndex, Mode=OneWay}"
+                    IsChecked="True" />
+                <!--<AppBarToggleButton
+                    x:Name="btn_nextPage"
+                    Width="40"
+                    Click="btn_nextPage_Click"
+                    Content="{x:Bind viewModel.PageIndexN, Mode=OneWay}"
+                    Visibility="{x:Bind viewModel.PageIndexNVisibility, Mode=OneWay}" />-->
+                <AppBarButton
+                    Width="40"
+                    Click="btn_nextPage_Click"
+                    Icon="{ui:FontIcon Glyph='&#xE76C;'}"
+                    IsEnabled="{x:Bind viewModel.CanNextPage, Mode=OneWay}" />
+            </CommandBar>
+            <ComboBox
+                x:Name="cmb_pageSize"
+                Width="100"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
+                ItemsSource="{x:Bind viewModel.PageSizeItems, Mode=OneTime}"
+                SelectedItem="{x:Bind viewModel.SelectedPageSize, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="m:SelectOptionItem">
+                        <TextBlock VerticalAlignment="Center">
+                            <Run Text="{x:Bind DisplayName, Mode=OneWay}" />
+                        </TextBlock>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock
+                Margin="5,0"
+                VerticalAlignment="Center"
+                Text="跳至" />
+            <NumberBox
+                x:Name="txt_jump"
+                VerticalAlignment="Center"
+                VerticalContentAlignment="Center"
+                IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
+                Maximum="{x:Bind viewModel.PageMax, Mode=OneWay}"
+                Minimum="1"
+                Text="1" />
+            <TextBlock
+                Margin="5,0"
+                VerticalAlignment="Center"
+                Text="页" />
+        </StackPanel>
+    </Grid>
+</Page>

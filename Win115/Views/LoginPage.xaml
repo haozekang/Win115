@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Win115.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Win115.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Win115.ViewModels"
+    Width="400"
+    d:DataContext="{d:DesignInstance vm:LoginViewModel,
+                                     IsDesignTimeCreatable=False}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <Style x:Key="title" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <InfoBar
+            x:Name="messageBar"
+            Title="Title"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Canvas.ZIndex="9999"
+            IsClosable="False"
+            IsOpen="False"
+            Message=""
+            Severity="Error" />
+        <StackPanel Spacing="4">
+            <TextBlock Text="欢迎使用115网盘" TextWrapping="Wrap" />
+            <StackPanel x:Name="page_qrcode" Visibility="Visible">
+                <Image
+                    x:Name="img_qrcode"
+                    Width="200"
+                    Height="200"
+                    Margin="0,5,0,0" />
+                <StackPanel
+                    x:Name="group_scan_info"
+                    Height="40"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    Visibility="{x:Bind viewModel.ScanInfoVisibility, Mode=OneWay}">
+                    <TextBlock
+                        Margin="5,0,0,1"
+                        VerticalAlignment="Center"
+                        Text="使用“115生活”App扫一扫登录" />
+                </StackPanel>
+                <StackPanel
+                    x:Name="group_scan_success"
+                    Height="40"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    Visibility="{x:Bind viewModel.ScanSuccessfulVisibility, Mode=OneWay}">
+                    <FontIcon Foreground="Green" Glyph="&#xE930;" />
+                    <TextBlock
+                        Margin="5,0,0,1"
+                        VerticalAlignment="Center"
+                        Text="扫码成功！" />
+                </StackPanel>
+                <StackPanel
+                    x:Name="group_scan_failed"
+                    Height="40"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    Visibility="{x:Bind viewModel.ScanFailedVisibility, Mode=OneWay}">
+                    <Button
+                        Margin="5,0,0,1"
+                        VerticalAlignment="Center"
+                        Click="btn_refreshQrcode_Click"
+                        Content="二维码已失效，点击刷新" />
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Page>

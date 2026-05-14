@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="Win115.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Win115"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Win115.ViewModels"
+    Title="115 Plus"
+    d:DataContext="{d:DesignInstance vm:MainViewModel,
+                                     IsDesignTimeCreatable=False}"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <InfoBar
+            x:Name="messageBar"
+            Title="Title"
+            Grid.Row="1"
+            Margin="0,10,0,0"
+            HorizontalAlignment="Center"
+            Background="{ThemeResource AppBarBackgroundThemeBrush}"
+            Canvas.ZIndex="9999"
+            Foreground="{ThemeResource AppBarItemForegroundThemeBrush}"
+            IsClosable="True"
+            IsOpen="False"
+            Message=""
+            Severity="Informational" />
+        <TitleBar
+            x:Name="titleBar"
+            Title="{x:Bind viewModel.Title}"
+            Grid.Row="0"
+            Margin="0,0,-46,0"
+            Padding="0,0,0,0"
+            HorizontalAlignment="Stretch"
+            IsBackButtonEnabled="False"
+            IsBackButtonVisible="False"
+            IsPaneToggleButtonVisible="True"
+            PaneToggleRequested="TitleBar_PaneToggleRequested">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="ms-appx:///Assets/favicon.png" />
+            </TitleBar.IconSource>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <AutoSuggestBox
+                    x:Name="NavViewSearchBox"
+                    Grid.Column="1"
+                    MinWidth="300"
+                    Margin="0,0,0,0"
+                    VerticalAlignment="Center"
+                    PlaceholderText="搜索"
+                    QueryIcon="Find" />
+            </Grid>
+            <TitleBar.RightHeader>
+                <StackPanel
+                    x:Name="RightHeaderPanel"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="4">
+                    <!--<AppBarButton
+                        Width="42"
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        Command="{x:Bind viewModel.OfflineDownloadCommand}"
+                        LabelPosition="Collapsed"
+                        ToolTipService.ToolTip="离线下载">
+                        <AppBarButton.Icon>
+                            <FontIcon Glyph="&#xE71B;" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>-->
+                    <AppBarButton
+                        Width="42"
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        Command="{x:Bind viewModel.LoginCommand}"
+                        LabelPosition="Collapsed"
+                        ToolTipService.ToolTip="登录"
+                        Visibility="{x:Bind viewModel.User.LoginButtonVisibility, Mode=OneWay}">
+                        <AppBarButton.Icon>
+                            <FontIcon Glyph="&#xEE7E;" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        LabelPosition="Collapsed"
+                        ToolTipService.Placement="Bottom"
+                        Visibility="{x:Bind viewModel.User.UserInfoButtonVisibility, Mode=OneWay}">
+                        <ToolTipService.ToolTip>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock FontSize="14">
+                                    <Run Text="已用：" />
+                                    <Run Text="{x:Bind viewModel.User.AllUseFormat, Mode=OneWay}" />
+                                    <Run Text="/" />
+                                    <Run Text="{x:Bind viewModel.User.AllTotalFormat, Mode=OneWay}" />
+                                </TextBlock>
+                                <ProgressBar
+                                    Grid.Row="1"
+                                    Width="200"
+                                    Margin="0,5,0,0"
+                                    Maximum="{x:Bind viewModel.User.AllTotalSizeD, Mode=OneWay}"
+                                    Value="{x:Bind viewModel.User.AllUseSizeD, Mode=OneWay}" />
+                            </Grid>
+                        </ToolTipService.ToolTip>
+                        <AppBarButton.Icon>
+                            <ImageIcon x:Name="img_face" />
+                        </AppBarButton.Icon>
+                        <AppBarButton.Flyout>
+                            <MenuFlyout Placement="Bottom">
+                                <MenuFlyoutItem Command="{x:Bind viewModel.UserInfoCommand}" Text="用户信息">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE72E;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Command="{x:Bind viewModel.SignOutCommand}" Text="注销登录">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xF3B1;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </AppBarButton.Flyout>
+                    </AppBarButton>
+                    <AppBarSeparator />
+                    <AppBarButton
+                        Width="42"
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        Click="btn_min_Click"
+                        LabelPosition="Collapsed"
+                        ToolTipService.ToolTip="最小化">
+                        <AppBarButton.Icon>
+                            <FontIcon Glyph="&#xE921;" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton
+                        Width="42"
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        Click="btn_max_Click"
+                        LabelPosition="Collapsed"
+                        ToolTipService.ToolTip="最大化">
+                        <AppBarButton.Icon>
+                            <FontIcon Glyph="&#xE922;" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton
+                        Width="42"
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        Click="btn_close_Click"
+                        LabelPosition="Collapsed"
+                        ToolTipService.ToolTip="关闭">
+                        <AppBarButton.Resources>
+                            <!--  PointerOver 状态  -->
+                            <SolidColorBrush x:Key="AppBarButtonForegroundPointerOver" Color="{ThemeResource SystemColorButtonTextColor}" />
+
+                            <!--  Pressed 状态  -->
+                            <SolidColorBrush x:Key="AppBarButtonBackgroundPressed" Color="#FF6666" />
+                            <SolidColorBrush x:Key="AppBarButtonForegroundPressed" Color="White" />
+                        </AppBarButton.Resources>
+                        <AppBarButton.Icon>
+                            <FontIcon Glyph="&#xE8BB;" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                </StackPanel>
+            </TitleBar.RightHeader>
+        </TitleBar>
+        <NavigationView
+            x:Name="RootNavigationView"
+            Grid.Row="1"
+            Grid.RowSpan="99"
+            FooterMenuItemsSource="{x:Bind viewModel.FooterMenuItems, Mode=OneWay}"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleButtonVisible="False"
+            IsSettingsVisible="False"
+            MenuItemsSource="{x:Bind viewModel.MenuItems, Mode=OneWay}"
+            OpenPaneLength="150"
+            PaneDisplayMode="Auto"
+            SelectedItem="{x:Bind viewModel.SelectedItem, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            SelectionChanged="RootNavigationView_SelectionChanged">
+            <Frame x:Name="RootFrame" />
+        </NavigationView>
+    </Grid>
+</Window>

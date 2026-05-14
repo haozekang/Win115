@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Source>D:\Downloads\download_from_the_cload.png</Source>
+    <SmallTileSource>D:\Downloads\download_from_the_cload.png</SmallTileSource>
+    <MediumTileSource>D:\Downloads\download_from_the_cload.png</MediumTileSource>
+    <WideTileSource>D:\Downloads\download_from_the_cload.png</WideTileSource>
+    <LargeTileSource>D:\Downloads\download_from_the_cload.png</LargeTileSource>
+    <AppIconSource>D:\Downloads\download_from_the_cload.png</AppIconSource>
+    <SplashScreenSource>D:\Downloads\download_from_the_cload.png</SplashScreenSource>
+    <PackageLogoSource>D:\Downloads\download_from_the_cload.png</PackageLogoSource>
+    <UapAppxPackageBuildMode>StoreOnly</UapAppxPackageBuildMode>
+    <AppxShowAllApps>True</AppxShowAllApps>
+    <AppxBuildConfigurationSelection>x86|x64|arm64</AppxBuildConfigurationSelection>
+    <PackageOptionalProjectsInIdeBuilds>False</PackageOptionalProjectsInIdeBuilds>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Update="App.xaml">
+      <SubType>Designer</SubType>
+    </None>
+    <None Update="MainWindow.xaml">
+      <SubType>Designer</SubType>
+    </None>
+    <None Update="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </None>
+    <None Update="Views\AboutPage.xaml">
+      <SubType>Designer</SubType>
+    </None>
+    <Page Update="Views\SearchFilesPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\NewFolderContentDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\LoginPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\UploadListPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\DownloadListPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\CloudDownloadPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\BackStationPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <None Update="Views\PrivacyPolicyPage.xaml">
+      <SubType>Designer</SubType>
+    </None>
+    <None Update="Views\SettingsPage.xaml">
+      <SubType>Designer</SubType>
+    </None>
+    <None Update="Views\UserPage.xaml">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+</Project>
