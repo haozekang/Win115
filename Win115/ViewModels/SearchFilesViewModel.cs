@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using System.Xml.XPath;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
+using Win115.Enums;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
@@ -107,7 +108,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<OpenUfileFilesDTO>(res.Content);
+                var dto = JsonConvert.DeserializeObject<OpenUfileSearchDTO>(res.Content);
                 if (dto is null)
                 {
                     await App.ShowMessageBar("序列化失败！", "错误", InfoBarSeverity.Error);
@@ -124,34 +125,23 @@ namespace Win115.ViewModels
                 }
                 foreach (var f in dto.Data)
                 {
-                    if (FileItems.Any(x => x.Id == f.FId))
+                    if (FileItems.Any(x => x.Id == f.FileId))
                     {
                         continue;
                     }
                     FileItems.Add(new MyFileItemModel
                     {
-                        ParentId = f.PId,
-                        Id = f.FId,
-                        Name = f.FN,
-                        FileType = f.FC,
-                        FileCover = f.FCO,
+                        ParentId = f.ParentId,
+                        Id = f.FileId,
+                        Name = f.FileName,
+                        FileType = f.FileCategory,
                         FileExtension = f.ICO,
-                        FileState = f.FTA,
+                        FileState = f.AreaId,
                         Sha1 = f.Sha1,
-                        IsVideo = f.IsV,
-                        IsEncrypted = f.IsP,
-                        Size = f.FS,
-                        CreateTime = f.UppT?.TimeStampToDateTime(),
-                        UpdateTime = f.UpT?.TimeStampToDateTime(),
-                        PickCode = f.PC,
-                        FileDesc = f.FDesc,
-                        AudioLength = f.FATR,
-                        VideoResolution = f.Def,
-                        VideoResolution2 = f.Def2,
-                        PlayLong = f.PlayLong,
-                        VideoUrl = f.VImg,
-                        ThumbUrl = f.Thumb,
-                        OriginalUrl = f.UO,
+                        Size = f.FileSize,
+                        //CreateTime = f.UserPtime,
+                        //UpdateTime = f.UserUtime,
+                        PickCode = f.PickCode,
                     });
                 }
                 Total = FileItems.Count;
@@ -197,7 +187,7 @@ namespace Win115.ViewModels
             }
             if (add)
             {
-                await App.JumpPage(typeof(DownloadListPage));
+                await App.JumpPage(MenuKeys.DownloadList);
             }
         }
 

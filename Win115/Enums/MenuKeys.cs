@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Win115.Enums
 {
-    internal enum MenuKeys
+    public enum MenuKeys
     {
         Main,
         User,
@@ -19,5 +19,6 @@ namespace Win115.Enums
         DownloadList,
         Settings,
         MyFiles,
+        SearchFiles,
     }
 }

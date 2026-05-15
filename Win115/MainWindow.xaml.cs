@@ -1,35 +1,22 @@
+using CommunityToolkit.WinUI;
 using LiteDB;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Navigation;
-using Org.BouncyCastle.Asn1.X509;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
+using Tanovo.ExtensionMethods;
 using Win115.Entities;
 using Win115.Enums;
 using Win115.Models;
 using Win115.Properties;
 using Win115.ViewModels;
 using Win115.Views;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.UI.ApplicationSettings;
-using Windows.UI.StartScreen;
 using WinRT.Interop;
-using static QRCoder.PayloadGenerator;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -93,7 +80,7 @@ namespace Win115
                 {
                     Name = task.Name,
                     Progress = task.Progress,
-                    State = task.State.HasValue ? task.State.Value : DownloadTaskStateEnum.Canceled,
+                    State = task.State.HasValue ? task.State.Value == DownloadTaskStateEnum.Queued ? DownloadTaskStateEnum.Paused : task.State.Value : DownloadTaskStateEnum.Canceled,
                     SavePath = task.SavePath,
                     Size = task.Size,
                     PickCode = task.PickCode,
@@ -132,6 +119,7 @@ namespace Win115
                     MenuKeys.UploadList => typeof(UploadListPage),
                     MenuKeys.User => typeof(UserPage),
                     MenuKeys.Settings => typeof(SettingsPage),
+                    MenuKeys.SearchFiles => typeof(SettingsPage),
                     _ => null
                 };
             }
@@ -198,14 +186,30 @@ namespace Win115
             return Task.CompletedTask;
         }
 
-        public async Task JumpPage(Type page)
+        public async Task JumpPage(MenuKeys? menu)
         {
-            if (page is null)
+            if (menu is null)
             {
                 viewModel.NavigateToBlank();
                 return;
             }
-            viewModel.NavigateToPage(page);
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                var item = viewModel.MenuItems.FirstOrDefault(x => (x.Tag as MenuKeys?) == menu);
+                if (item is null)
+                {
+                    if (menu == MenuKeys.User)
+                    {
+                        viewModel.NavigateToPage(typeof(UserPage));
+                    }
+                    if (menu == MenuKeys.SearchFiles)
+                    {
+                        viewModel.NavigateToPage(typeof(SearchFilesPage));
+                    }
+                    return;
+                }
+                RootNavigationView.SelectedItem = item;
+            });
         }
 
         public Task SetFace(string url)
@@ -223,6 +227,38 @@ namespace Win115
             messageBar.IsOpen = false;
             timer.Stop();
             GC.Collect();
+        }
+
+        private async void NavViewSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        {
+            var searchValue = NavViewSearchBox.Text.StringTrim();
+            if (searchValue.IsBlank())
+            {
+                return;
+            }
+            var vm = App.Resolve<SearchFilesViewModel>();
+            if (vm is null)
+            {
+                return;
+            }
+            vm.SearchValue = searchValue;
+            await vm.RefreshFilesCommand.ExecuteAsync(null);
+            await JumpPage(MenuKeys.SearchFiles);
+        }
+
+        internal async Task UpdatePathBar()
+        {
+            var vm = App.Resolve<MyFilesViewModel>();
+            if (vm is null || RootFrame.Content is not MyFilesPage ui)
+            {
+                return;
+            }
+            var paths = new List<SelectOptionItem>();
+            paths.AddRange(vm.PathItems);
+            await DispatcherQueue.EnqueueAsync(() =>
+            {
+                ui.UpdatePathBar(paths);
+            });
         }
     }
 }

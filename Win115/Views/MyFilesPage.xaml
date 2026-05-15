@@ -15,7 +15,7 @@
                                      IsDesignTimeCreatable=False}"
     mc:Ignorable="d">
     <Page.Resources>
-        <MenuFlyout x:Key="item_menu">
+        <MenuFlyout x:Key="item_menu" Opening="item_menu_Opening">
             <MenuFlyoutItem
                 Click="menu_open_Click"
                 Icon="{ui:FontIcon Glyph='&#xE838;'}"
@@ -25,7 +25,15 @@
                 Icon="{ui:FontIcon Glyph='&#xE72C;'}"
                 Text="刷新" />
             <MenuFlyoutSeparator />
-            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE896;'}" Text="下载" />
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.DownloadRightMenuCommand}"
+                CommandParameter="{Binding .}"
+                Icon="{ui:FontIcon Glyph='&#xE896;'}"
+                Text="下载" />
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.DownloadOtherDirRightMenuCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE896;'}"
+                Text="下载（另存为）" />
             <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE898;'}" Text="上传文件" />-->
             <MenuFlyoutSeparator />
             <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8C8;'}" Text="复制到" />
@@ -345,9 +353,9 @@
                     FontWeight="Bold"
                     Text="路径：" />
                 <BreadcrumbBar
+                    x:Name="path_bar"
                     Grid.Row="1"
-                    ItemClicked="path_Click"
-                    ItemsSource="{x:Bind viewModel.PathItems, Mode=OneWay}" />
+                    ItemClicked="path_Click" />
             </StackPanel>
         </Border>
         <Grid Grid.Row="2">
@@ -355,49 +363,49 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <ContentControl
-                Grid.Row="0"
-                Content="{x:Bind viewModel}"
-                ContentTemplate="{StaticResource items_header}"
-                Visibility="{x:Bind viewModel.ViewAllVisibility, Mode=OneWay}" />
-            <ItemsView
+            <GridView
                 x:Name="iv"
                 Grid.Row="1"
                 MinWidth="800"
-                Margin="14,5,14,0"
-                IsItemInvokedEnabled="False"
+                Margin="0,0,0,0"
+                DoubleTapped="item_DoubleTapped"
+                Header="{x:Bind viewModel}"
+                HeaderTemplate="{StaticResource items_header}"
+                IsDoubleTapEnabled="True"
+                IsItemClickEnabled="True"
                 ItemsSource="{x:Bind viewModel.FileItems, Mode=OneWay}"
                 SelectionChanged="iv_SelectionChanged"
                 SelectionMode="Multiple"
                 Visibility="{x:Bind viewModel.ViewAllVisibility, Mode=OneWay}">
-                <ItemsView.ItemTemplate>
+                <GridView.ItemTemplate>
                     <DataTemplate x:DataType="m:MyFileItemModel">
-                        <ItemContainer
-                            ContextFlyout="{StaticResource item_menu}"
-                            DoubleTapped="item_DoubleTapped"
-                            Tag="{x:Bind Id}">
-                            <StackPanel Margin="0,0,0,0" VerticalAlignment="Center">
-                                <FontIcon
-                                    VerticalAlignment="Center"
-                                    FontSize="24"
-                                    Glyph="{x:Bind FileTypeIcon, Mode=OneWay}" />
-                                <TextBlock
-                                    Margin="8,10,8,0"
-                                    HorizontalAlignment="Center"
-                                    Text="{x:Bind Name, Mode=OneWay}"
-                                    TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                        </ItemContainer>
+                        <Grid
+                            Width="100"
+                            Height="90"
+                            Margin="0,0,0,0"
+                            VerticalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <FontIcon
+                                Grid.Row="0"
+                                Margin="0,20,0,0"
+                                VerticalAlignment="Center"
+                                FontSize="24"
+                                Glyph="{x:Bind FileTypeIcon, Mode=OneWay}" />
+                            <TextBlock
+                                Grid.Row="1"
+                                Margin="8,0,8,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Text="{x:Bind Name, Mode=OneWay}"
+                                TextTrimming="CharacterEllipsis" />
+                        </Grid>
                     </DataTemplate>
-                </ItemsView.ItemTemplate>
-                <ItemsView.Layout>
-                    <UniformGridLayout
-                        MinColumnSpacing="5"
-                        MinItemHeight="90"
-                        MinItemWidth="100"
-                        MinRowSpacing="5" />
-                </ItemsView.Layout>
-            </ItemsView>
+                </GridView.ItemTemplate>
+            </GridView>
             <ListView
                 x:Name="lv"
                 Grid.Row="1"
@@ -457,79 +465,13 @@
         </Grid>
         <StackPanel
             Grid.Row="3"
-            Margin="10,5,10,0"
+            Margin="10,5,10,5"
             Orientation="Horizontal">
             <TextBlock VerticalAlignment="Center">
                 <Run Text="共" />
-                <Run FontWeight="Bold" Text="{x:Bind viewModel.CurPageTotal, Mode=OneWay}" />
+                <Run FontWeight="Bold" Text="{x:Bind viewModel.FileItems.Count, Mode=OneWay}" />
                 <Run Text="项" />
             </TextBlock>
-        </StackPanel>
-        <StackPanel
-            Grid.Row="3"
-            Margin="10,5,10,0"
-            HorizontalAlignment="Right"
-            Orientation="Horizontal">
-            <CommandBar IsDynamicOverflowEnabled="False" OverflowButtonVisibility="Collapsed">
-                <AppBarButton
-                    Width="40"
-                    Click="btn_previousPage_Click"
-                    Icon="{ui:FontIcon Glyph='&#xE76B;'}"
-                    IsEnabled="{x:Bind viewModel.CanPreviousPage, Mode=OneWay}" />
-                <!--<AppBarToggleButton
-                    x:Name="btn_previousPage"
-                    Width="40"
-                    Click="btn_previousPage_Click"
-                    Content="{x:Bind viewModel.PageIndexP, Mode=OneWay}"
-                    Visibility="{x:Bind viewModel.PageIndexPVisibility, Mode=OneWay}" />-->
-                <AppBarToggleButton
-                    Width="40"
-                    Content="{x:Bind viewModel.PageIndex, Mode=OneWay}"
-                    IsChecked="True" />
-                <!--<AppBarToggleButton
-                    x:Name="btn_nextPage"
-                    Width="40"
-                    Click="btn_nextPage_Click"
-                    Content="{x:Bind viewModel.PageIndexN, Mode=OneWay}"
-                    Visibility="{x:Bind viewModel.PageIndexNVisibility, Mode=OneWay}" />-->
-                <AppBarButton
-                    Width="40"
-                    Click="btn_nextPage_Click"
-                    Icon="{ui:FontIcon Glyph='&#xE76C;'}"
-                    IsEnabled="{x:Bind viewModel.CanNextPage, Mode=OneWay}" />
-            </CommandBar>
-            <ComboBox
-                x:Name="cmb_pageSize"
-                Width="100"
-                VerticalAlignment="Center"
-                VerticalContentAlignment="Center"
-                IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
-                ItemsSource="{x:Bind viewModel.PageSizeItems, Mode=OneTime}"
-                SelectedItem="{x:Bind viewModel.SelectedPageSize, Mode=TwoWay}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="m:SelectOptionItem">
-                        <TextBlock VerticalAlignment="Center">
-                            <Run Text="{x:Bind DisplayName, Mode=OneWay}" />
-                        </TextBlock>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <TextBlock
-                Margin="5,0"
-                VerticalAlignment="Center"
-                Text="跳至" />
-            <NumberBox
-                x:Name="txt_jump"
-                VerticalAlignment="Center"
-                VerticalContentAlignment="Center"
-                IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
-                Maximum="{x:Bind viewModel.PageMax, Mode=OneWay}"
-                Minimum="1"
-                Text="1" />
-            <TextBlock
-                Margin="5,0"
-                VerticalAlignment="Center"
-                Text="页" />
         </StackPanel>
     </Grid>
 </Page>

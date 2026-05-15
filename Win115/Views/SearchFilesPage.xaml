@@ -67,27 +67,6 @@
                                 VerticalAlignment="Center"
                                 Tag="name"
                                 Text="名称" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74A;"
-                                Tag="name"
-                                Visibility="{x:Bind SortNameUpVisibility, Mode=OneWay}" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74B;"
-                                Tag="name"
-                                Visibility="{x:Bind SortNameDownVisibility, Mode=OneWay}" />
-                            <TextBlock
-                                Grid.Column="3"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch"
-                                Tag="name" />
                         </Grid>
                     </controls:DataColumn.Content>
                 </controls:DataColumn>
@@ -109,20 +88,6 @@
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
                                 Text="大小" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74A;"
-                                Visibility="{x:Bind SortSizeUpVisibility, Mode=OneWay}" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74B;"
-                                Visibility="{x:Bind SortSizeDownVisibility, Mode=OneWay}" />
                         </Grid>
                     </controls:DataColumn.Content>
                 </controls:DataColumn>
@@ -144,20 +109,6 @@
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
                                 Text="种类" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74A;"
-                                Visibility="{x:Bind SortFileTypeUpVisibility, Mode=OneWay}" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74B;"
-                                Visibility="{x:Bind SortFileTypeDownVisibility, Mode=OneWay}" />
                         </Grid>
                     </controls:DataColumn.Content>
                 </controls:DataColumn>
@@ -179,20 +130,6 @@
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
                                 Text="创建时间" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74A;"
-                                Visibility="{x:Bind SortCreateTimeUpVisibility, Mode=OneWay}" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74B;"
-                                Visibility="{x:Bind SortCreateTimeDownVisibility, Mode=OneWay}" />
                         </Grid>
                     </controls:DataColumn.Content>
                 </controls:DataColumn>
@@ -214,20 +151,6 @@
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
                                 Text="修改时间" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74A;"
-                                Visibility="{x:Bind SortUpdateTimeUpVisibility, Mode=OneWay}" />
-                            <FontIcon
-                                Grid.Column="2"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Glyph="&#xE74B;"
-                                Visibility="{x:Bind SortUpdateTimeDownVisibility, Mode=OneWay}" />
                         </Grid>
                     </controls:DataColumn.Content>
                 </controls:DataColumn>
@@ -402,7 +325,7 @@
         </Grid>
         <StackPanel
             Grid.Row="3"
-            Margin="10,5,10,0"
+            Margin="10,5,10,5"
             Orientation="Horizontal">
             <TextBlock VerticalAlignment="Center">
                 <Run Text="共" />

@@ -22,7 +22,7 @@ namespace Win115.Models
     public partial class DownloadItemModel : ObservableObject
     {
         [ObservableProperty]
-        public partial long? TaskId { get; set; } = 0;
+        public partial int? TaskId { get; set; } = 0;
 
         [ObservableProperty]
         public partial string? Name { get; set; } = string.Empty;

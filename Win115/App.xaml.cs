@@ -22,6 +22,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
+using Win115.Enums;
 using Win115.Handlers;
 using Win115.Models;
 using Win115.ViewModels;
@@ -96,6 +97,7 @@ namespace Win115
             builder.RegisterType<SettingsViewModel>().AsSelf().SingleInstance();
             builder.RegisterType<UserViewModel>().AsSelf().SingleInstance();
             builder.RegisterType<MyFilesViewModel>().AsSelf().SingleInstance();
+            builder.RegisterType<SearchFilesViewModel>().AsSelf().SingleInstance();
             builder.RegisterType<UploadListViewModel>().AsSelf().SingleInstance();
             builder.RegisterType<DownloadListViewModel>().AsSelf().SingleInstance();
             builder.RegisterType<CloudDownloadViewModel>().AsSelf().SingleInstance();
@@ -140,13 +142,22 @@ namespace Win115
             return mw.SetFace(url);
         }
 
-        public static Task JumpPage(Type page)
+        public static Task JumpPage(MenuKeys? menu)
         {
             if (_window is null || _window is not MainWindow mw)
             {
                 return Task.CompletedTask;
             }
-            return mw.JumpPage(page);
+            return mw.JumpPage(menu);
+        }
+
+        public static Task UpdatePathBar()
+        {
+            if (_window is null || _window is not MainWindow mw)
+            {
+                return Task.CompletedTask;
+            }
+            return mw.UpdatePathBar();
         }
 
         public static T Resolve<T>() where T : notnull

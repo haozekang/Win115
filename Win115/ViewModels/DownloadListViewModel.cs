@@ -60,7 +60,7 @@ namespace Win115.ViewModels
             {
                 App.DispatcherQueue?.TryEnqueue(() =>
                 {
-                    DownloadItems.Add(item);
+                    DownloadItems.Insert(0, item);
                 });
             }
             Debug.WriteLine($"===>Download task reader close!");
@@ -174,6 +174,7 @@ namespace Win115.ViewModels
                 if (find is not null)
                 {
                     find.State = DownloadTaskStateEnum.Completed;
+                    find.Progress = "100%";
                     col.Update(find);
                 }
                 App.DispatcherQueue?.TryEnqueue(() =>
@@ -224,7 +225,7 @@ namespace Win115.ViewModels
                 }
                 // 下载记录
                 var col = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
-                long id = col.Insert(new DownloadTaskEntity
+                var id = col.Insert(new DownloadTaskEntity
                 {
                     Name = fileName,
                     Progress = $"{progress:P}",
@@ -261,6 +262,7 @@ namespace Win115.ViewModels
             {
                 return;
             }
+            var col = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
             var pks = DownloadItems.Where(x => x.State == DownloadTaskStateEnum.Completed).Select(x => x.PickCode).ToArray();
             foreach (var pk in pks)
             {
@@ -269,6 +271,7 @@ namespace Win115.ViewModels
                 {
                     continue;
                 }
+                col.DeleteMany(x => x.PickCode == item.PickCode && x.Name == item.Name && x.Size == item.Size && x.SavePath == item.SavePath && x.Url == item.Url);
                 DownloadItems.Remove(item);
             }
         }

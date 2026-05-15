@@ -1,6 +1,8 @@
 using Autofac;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.WinUI;
+using CommunityToolkit.WinUI.Collections;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -16,11 +18,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
+using Win115.Enums;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
 using Win115.Views;
 using Windows.Foundation;
+using Windows.Storage;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace Win115.ViewModels
 {
@@ -28,14 +34,6 @@ namespace Win115.ViewModels
     {
         public readonly SemaphoreSlim RefreshSemaphore = new(1, 1);
         private DownloadListViewModel _downloadListViewModel { get; set; }
-
-        public List<SelectOptionItem> PageSizeItems { get; } = new List<SelectOptionItem>() 
-        {
-            new SelectOptionItem(20, $"20/页"),
-            new SelectOptionItem(50, $"50/页"),
-            new SelectOptionItem(100, $"100/页"),
-            new SelectOptionItem(200, $"200/页"),
-        };
 
         [ObservableProperty]
         public partial UserInfoModel User { get; set; }
@@ -45,16 +43,8 @@ namespace Win115.ViewModels
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanDo))]
+        [NotifyPropertyChangedFor(nameof(CanParentDirectory))]
         public partial bool IsBusy { get; set; } = false;
-
-        [ObservableProperty]
-        public partial long CurPageTotal { get; set; } = 0;
-
-        [ObservableProperty]
-        public partial SelectOptionItem SelectedPageSize { get; set; }
-
-        [ObservableProperty]
-        public partial long Offset { get; set; } = 0;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsViewAllView))]
@@ -68,51 +58,15 @@ namespace Win115.ViewModels
 
         public bool IsListView => ListVisibility == Visibility.Visible;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanPreviousPage))]
-        [NotifyPropertyChangedFor(nameof(CanNextPage))]
-        [NotifyPropertyChangedFor(nameof(PageIndexP))]
-        [NotifyPropertyChangedFor(nameof(PageIndexN))]
-        [NotifyPropertyChangedFor(nameof(PageIndexPVisibility))]
-        [NotifyPropertyChangedFor(nameof(PageIndexNVisibility))]
-        public partial long PageIndex { get; set; } = 1;
-
-        public long PageIndexP => PageIndex - 1;
-
-        public long PageIndexN => PageIndex + 1;
-
-        public Visibility PageIndexPVisibility => PageIndex > 1 ? Visibility.Visible : Visibility.Collapsed;
-
-        public Visibility PageIndexNVisibility => PageIndex < PageCount ? Visibility.Visible : Visibility.Collapsed;
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanPreviousPage))]
-        [NotifyPropertyChangedFor(nameof(CanNextPage))]
-        [NotifyPropertyChangedFor(nameof(PageIndexP))]
-        [NotifyPropertyChangedFor(nameof(PageIndexN))]
-        [NotifyPropertyChangedFor(nameof(PageIndexPVisibility))]
-        [NotifyPropertyChangedFor(nameof(PageIndexNVisibility))]
-        [NotifyPropertyChangedFor(nameof(PageMax))]
-        public partial long PageCount { get; set; } = 1;
-
-        public double PageMax => PageCount;
-
         public bool CanDo => !IsBusy && User.IsLogin;
-
-        [ObservableProperty]
-        public partial bool CanPreviousPage { get; set; } = false;
-
-        [ObservableProperty]
-        public partial bool CanNextPage { get; set; } = false;
-
-        [ObservableProperty]
-        public partial bool CanParentDirectory { get; set; } = false;
 
         [ObservableProperty]
         public partial bool HasSelectedItems { get; set; } = false;
 
         [ObservableProperty]
         public partial bool? IsCheckAll { get; set; } = false;
+
+        public bool CanParentDirectory => PathItems.Count > 1 && CanDo;
 
         [ObservableProperty]
         public partial Visibility SortNameUpVisibility { get; set; } = Visibility.Visible;
@@ -151,26 +105,24 @@ namespace Win115.ViewModels
         public partial string SortField { get; set; } = "file_name";
 
         [ObservableProperty]
-        public partial ObservableCollection<MyFileItemModel> FileItems { get; set; }
+        public partial IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel> FileItems { get; set; }
 
         [ObservableProperty]
-        public partial ObservableCollection<MyFileItemModel> SelectedFileItems { get; set; }
+        public partial List<MyFileItemModel> SelectedFileItems { get; set; }
 
         [ObservableProperty]
-        public partial ObservableCollection<SelectOptionItem> PathItems { get; set; }
+        public partial List<SelectOptionItem> PathItems { get; set; } = new()
+        {
+            new SelectOptionItem(-1, "文件")
+        };
 
         public MyFilesViewModel(UserInfoModel user, SystemInfoModel system, DownloadListViewModel downloadListViewModel)
         {
             User = user;
             System = system;
             _downloadListViewModel = downloadListViewModel;
-            FileItems = new();
+            FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(-1, SortDirection, SortField));
             SelectedFileItems = new();
-            PathItems = new()
-            {
-                new SelectOptionItem(-1, "文件")
-            };
-            SelectedPageSize = PageSizeItems.First();
         }
 
         /// <summary>
@@ -197,87 +149,24 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task RefreshFiles()
         {
+            if (!User.IsLogin)
+            {
+                return;
+            }
             if (RefreshSemaphore.CurrentCount == 0)
             {
                 return;
             }
             await RefreshSemaphore.WaitAsync();
-            if (!User.IsLogin)
-            {
-                return;
-            }
             try
             {
                 IsBusy = true;
-                FileItems.Clear();
-                var req = new RestRequest(ApiResource.OpenUfileFiles);
-                if (PathItems.Last().Id != -1)
-                {
-                    req.AddQueryParameter("cid", PathItems.Last().Id);
-                }
-                req.AddQueryParameter("limit", SelectedPageSize.Id);
-                req.AddQueryParameter("offset", (PageIndex - 1) * SelectedPageSize.Id);
-                req.AddQueryParameter("asc", SortDirection);
-                req.AddQueryParameter("o", SortField);
-                req.AddQueryParameter("custom_order", "1");
-                req.AddQueryParameter("cur", 1);
-                req.AddQueryParameter("show_dir", 1);
-
-                var res = await App.ProApiClient.GetAsync(req);
-                if (!res.IsSuccessful || res.Content.IsBlank())
-                {
-                    return;
-                }
-                var dto = JsonConvert.DeserializeObject<OpenUfileFilesDTO>(res.Content);
-                if (dto is null)
-                {
-                    await App.ShowMessageBar("序列化失败！", "错误", InfoBarSeverity.Error);
-                    return;
-                }
-                if (dto.State != true)
-                {
-                    await App.ShowMessageBar(dto.Message ?? "未知错误", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
-                    return;
-                }
-                if (dto.Data is null)
-                {
-                    return;
-                }
-                var pageSize = SelectedPageSize.Id;
-                PageCount = (long)Math.Ceiling((dto.Count ?? 0d) / pageSize);
-                foreach (var f in dto.Data)
-                {
-                    if (FileItems.Any(x => x.Id == f.FId))
-                    {
-                        continue;
-                    }
-                    FileItems.Add(new MyFileItemModel
-                    {
-                        ParentId = f.PId,
-                        Id = f.FId,
-                        Name = f.FN,
-                        FileType = f.FC,
-                        FileCover = f.FCO,
-                        FileExtension = f.ICO,
-                        FileState = f.FTA,
-                        Sha1 = f.Sha1,
-                        IsVideo = f.IsV,
-                        IsEncrypted = f.IsP,
-                        Size = f.FS,
-                        CreateTime = f.UppT?.TimeStampToDateTime(),
-                        UpdateTime = f.UpT?.TimeStampToDateTime(),
-                        PickCode = f.PC,
-                        FileDesc = f.FDesc,
-                        AudioLength = f.FATR,
-                        VideoResolution = f.Def,
-                        VideoResolution2 = f.Def2,
-                        PlayLong = f.PlayLong,
-                        VideoUrl = f.VImg,
-                        ThumbUrl = f.Thumb,
-                        OriginalUrl = f.UO,
-                    });
-                }
-                CurPageTotal = FileItems.Count;
+                await App.UpdatePathBar();
+                FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(PathItems.Last().Id, SortDirection, SortField));
+                //if (IsViewAllView)
+                //{
+                //    await FileItems.RefreshAsync();
+                //}
             }
             catch (Exception ex)
             {
@@ -285,9 +174,6 @@ namespace Win115.ViewModels
             }
             finally
             {
-                CanPreviousPage = PageIndex > 1 && PageCount > 1 && User.IsLogin;
-                CanNextPage = PageIndex < PageCount && PageCount > 1 && User.IsLogin;
-                CanParentDirectory = PathItems.Count > 1 && User.IsLogin;
                 SelectedFileItems.Clear();
                 HasSelectedItems = false;
                 IsCheckAll = false;
@@ -302,6 +188,10 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task NewFolder()
         {
+            if (!User.IsLogin)
+            {
+                return;
+            }
             using var scope = App.CreateScope();
             var vm = scope.Resolve<NewFolderViewModel>();
             NewFolderContentDialog dialog = new NewFolderContentDialog(vm);
@@ -363,6 +253,10 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task DownloadSelected()
         {
+            if (!User.IsLogin)
+            {
+                return;
+            }
             if (SelectedFileItems.IsBlank())
             {
                 return;
@@ -385,7 +279,108 @@ namespace Win115.ViewModels
             }
             if (add)
             {
-                await App.JumpPage(typeof(DownloadListPage));
+                await App.JumpPage(MenuKeys.DownloadList);
+            }
+        }
+
+        /// <summary>
+        /// 右键触发下载所选（没有所选择下载所在的item）
+        /// </summary>
+        [RelayCommand]
+        public async Task DownloadRightMenu(object? item)
+        {
+            if (!User.IsLogin)
+            {
+                return;
+            }
+            if (SelectedFileItems.IsBlank() && item is null)
+            {
+                return;
+            }
+            if (System.DownloadDirPath.IsBlank())
+            {
+                await App.ShowMessageBar("请先在设置中设定下载默认目录！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                return;
+            }
+            bool add = false;
+            if (SelectedFileItems.IsNotBlank())
+            {
+                foreach (var s in SelectedFileItems)
+                {
+                    // 目录暂不支持
+                    if (s.FileType == "0")
+                    {
+                        continue;
+                    }
+                    add = true;
+                    await _downloadListViewModel.AddTask(s.PickCode!, s.Name!, s.Size, System.DownloadDirPath);
+                }
+            }
+            else if(item is MyFileItemModel _item)
+            {
+                if (_item.FileType == "0")
+                {
+                    await App.ShowMessageBar("尚未支持目录下载！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                    return;
+                }
+                add = true;
+                await _downloadListViewModel.AddTask(_item.PickCode!, _item.Name!, _item.Size, System.DownloadDirPath);
+            }
+            if (add)
+            {
+                await App.JumpPage(MenuKeys.DownloadList);
+            }
+        }
+
+        /// <summary>
+        /// 右键触发下载，另存为
+        /// </summary>
+        [RelayCommand]
+        public async Task DownloadOtherDirRightMenu(object? item)
+        {
+            if (!User.IsLogin)
+            {
+                return;
+            }
+            if (SelectedFileItems.IsBlank() && item is null)
+            {
+                return;
+            }
+            FolderPicker picker = new();
+            picker.FileTypeFilter.Add("*");
+            InitializeWithWindow.Initialize(picker, App.WindowHandle);
+            StorageFolder? folder = await picker.PickSingleFolderAsync();
+            if (folder == null || folder.Path.IsBlank())
+            {
+                return;
+            }
+            bool add = false;
+            if (SelectedFileItems.IsNotBlank())
+            {
+                foreach (var s in SelectedFileItems)
+                {
+                    // 目录暂不支持
+                    if (s.FileType == "0")
+                    {
+                        continue;
+                    }
+                    add = true;
+                    await _downloadListViewModel.AddTask(s.PickCode!, s.Name!, s.Size, folder.Path);
+                }
+            }
+            else if(item is MyFileItemModel _item)
+            {
+                if (_item.FileType == "0")
+                {
+                    await App.ShowMessageBar("尚未支持目录下载！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                    return;
+                }
+                add = true;
+                await _downloadListViewModel.AddTask(_item.PickCode!, _item.Name!, _item.Size, folder.Path);
+            }
+            if (add)
+            {
+                await App.JumpPage(MenuKeys.DownloadList);
             }
         }
 
@@ -395,6 +390,10 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task CopyTo()
         {
+            if (!User.IsLogin)
+            {
+                return;
+            }
         }
 
         /// <summary>
@@ -403,6 +402,10 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task MoveTo()
         {
+            if (!User.IsLogin)
+            {
+                return;
+            }
         }
 
         /// <summary>
@@ -471,10 +474,16 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            if (folder is MyFileItemModel { FileType: "0", Id: not null, Name: not null } item )
+            try
             {
-                PathItems.Add(new SelectOptionItem(item.Id, item.Name));
-                await RefreshFiles();
+                if (folder is MyFileItemModel { FileType: "0", Id: not null, Name: not null } item)
+                {
+                    PathItems.Add(new SelectOptionItem(item.Id, item.Name));
+                    await RefreshFiles();
+                }
+            }
+            catch
+            {
             }
         }
     }

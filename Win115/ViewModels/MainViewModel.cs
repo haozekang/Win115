@@ -37,7 +37,7 @@ namespace Win115.ViewModels
         public partial string? Title { get; set; } = "115 Plus";
 
         [ObservableProperty]
-        public partial ObservableCollection<object> MenuItems { get; set; } = new ObservableCollection<object>()
+        public partial ObservableCollection<NavigationViewItem> MenuItems { get; set; } = new ObservableCollection<NavigationViewItem>()
         {
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE977" }, Content = "我的文件", Tag = MenuKeys.MyFiles },
             //new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE74D" }, Content = "回收站", Tag = MenuKeys.BackStation },
@@ -47,7 +47,7 @@ namespace Win115.ViewModels
         };
 
         [ObservableProperty]
-        public partial ObservableCollection<object> FooterMenuItems { get; set; } = new ObservableCollection<object>()
+        public partial ObservableCollection<NavigationViewItem> FooterMenuItems { get; set; } = new ObservableCollection<NavigationViewItem>()
         {
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE946" }, Content = "关于", Tag = MenuKeys.About },
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE705" }, Content = "隐私策略", Tag = MenuKeys.PrivacyPolicy },
@@ -207,8 +207,8 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            // 用户没有按钮
-            if (type == typeof(UserPage))
+            // 用户\搜索结果 没有按钮
+            if (type == typeof(UserPage) || type == typeof(SearchFilesPage))
             {
                 SelectedItem = null;
             }

@@ -154,7 +154,8 @@ namespace Win115.Handlers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Debug.WriteLine(ex);
+                Debug.WriteLine(ex.StackTrace);
                 return false;
             }
             finally

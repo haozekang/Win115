@@ -64,7 +64,8 @@
                     Margin="0,0,0,0"
                     VerticalAlignment="Center"
                     PlaceholderText="搜索"
-                    QueryIcon="Find" />
+                    QueryIcon="Find"
+                    QuerySubmitted="NavViewSearchBox_QuerySubmitted" />
             </Grid>
             <TitleBar.RightHeader>
                 <StackPanel

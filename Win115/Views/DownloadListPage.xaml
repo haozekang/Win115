@@ -53,19 +53,19 @@
                         DesiredWidth="*"
                         FontWeight="Bold" />
                     <controls:DataColumn
-                        MinWidth="140"
+                        MinWidth="120"
                         Content="大小"
-                        DesiredWidth="140"
+                        DesiredWidth="120"
                         FontWeight="Bold" />
                     <controls:DataColumn
-                        MinWidth="140"
+                        MinWidth="100"
                         Content="速度"
-                        DesiredWidth="140"
+                        DesiredWidth="100"
                         FontWeight="Bold" />
                     <controls:DataColumn
-                        MinWidth="200"
+                        MinWidth="80"
                         Content="进度"
-                        DesiredWidth="200"
+                        DesiredWidth="80"
                         FontWeight="Bold" />
                     <controls:DataColumn
                         MinWidth="120"

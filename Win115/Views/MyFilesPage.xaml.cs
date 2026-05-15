@@ -46,15 +46,6 @@ namespace Win115.Views
 
             viewModel = App.Resolve<MyFilesViewModel>();
             _user = App.Resolve<UserInfoModel>();
-
-            DispatcherQueue.TryEnqueue(async () => 
-            {
-                await viewModel.RefreshSemaphore.WaitAsync();
-                await Task.Delay(100);
-                txt_jump.ValueChanged += txt_jump_ValueChanged;
-                cmb_pageSize.SelectionChanged += cmb_pageSize_SelectionChanged;
-                viewModel.RefreshSemaphore.Release();
-            });
         }
 
         private async void menu_open_Click(object sender, RoutedEventArgs e)
@@ -100,75 +91,73 @@ namespace Win115.Views
             }
         }
 
-        private async void btn_previousPage_Click(object sender, RoutedEventArgs e)
-        {
-            //btn_previousPage.IsChecked = false;
-            if (viewModel is null)
-            {
-                return;
-            }
-            viewModel.PageIndex--;
-            await viewModel.RefreshFilesCommand.ExecuteAsync(null);
-        }
-
-        private async void btn_nextPage_Click(object sender, RoutedEventArgs e)
-        {
-            //btn_nextPage.IsChecked = false;
-            if (viewModel is null)
-            {
-                return;
-            }
-            viewModel.PageIndex++;
-            await viewModel.RefreshFilesCommand.ExecuteAsync(null);
-        }
-
-        private async void txt_jump_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        private void chk_all_Checked(object sender, RoutedEventArgs e)
         {
             if (viewModel is null)
             {
                 return;
             }
-            txt_jump.ValueChanged -= txt_jump_ValueChanged;
-            var jump = 1L;
-            if (txt_jump.Value < 1)
+            if (viewModel.ListVisibility == Visibility.Visible)
             {
-                jump = 1;
-            }
-            else if (txt_jump.Value > viewModel.PageCount)
-            {
-                jump = viewModel.PageCount;
+                lv.SelectAll();
             }
             else
             {
-                jump = (long)txt_jump.Value;
+                iv.SelectAll();
             }
-            txt_jump.Value = jump;
-            viewModel.PageIndex = jump;
-            await viewModel.RefreshFilesCommand.ExecuteAsync(null);
-            txt_jump.ValueChanged += txt_jump_ValueChanged;
         }
 
-        private async void cmb_pageSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void chk_all_Unchecked(object sender, RoutedEventArgs e)
         {
             if (viewModel is null)
             {
                 return;
             }
-            if (cmb_pageSize.SelectedItem is not SelectOptionItem)
-            {
-                return;
-            }
-            viewModel.SelectedPageSize = (SelectOptionItem)cmb_pageSize.SelectedItem;
-            await viewModel.RefreshFilesCommand.ExecuteAsync(null);
+            lv.SelectedItems.Clear();
+            iv.SelectedItems.Clear();
         }
 
-        private void lv_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void chk_viewAll_Checked(object sender, RoutedEventArgs e)
         {
-            if (sender is not ListView || viewModel is null|| viewModel.FileItems.Count == 0 || _user is null)
+            if (viewModel is null)
             {
                 return;
             }
-            Debug.WriteLine($"===>lv_SelectionChanged");
+            viewModel.ListVisibility = Visibility.Collapsed;
+            viewModel.ViewAllVisibility = Visibility.Visible;
+            iv.SelectionChanged -= iv_SelectionChanged;
+            iv.SelectedItems.Clear();
+            foreach (var item in viewModel.SelectedFileItems)
+            {
+                iv.SelectedItems.Add(item);
+            }
+            iv.SelectionChanged += iv_SelectionChanged;
+        }
+
+        private void chk_list_Checked(object sender, RoutedEventArgs e)
+        {
+            if (viewModel is null)
+            {
+                return;
+            }
+            viewModel.ViewAllVisibility = Visibility.Collapsed;
+            viewModel.ListVisibility = Visibility.Visible;
+            lv.SelectionChanged -= lv_SelectionChanged;
+            lv.SelectedItems.Clear();
+            foreach (var item in viewModel.SelectedFileItems)
+            {
+                lv.SelectedItems.Add(item);
+            }
+            lv.SelectionChanged += lv_SelectionChanged;
+        }
+
+        private void iv_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not GridView || viewModel is null|| viewModel.FileItems.Count == 0 || _user is null)
+            {
+                return;
+            }
+            Debug.WriteLine($"===>iv_SelectionChanged");
             if (e.RemovedItems is not null && e.RemovedItems.Count > 0)
             {
                 foreach (var f in e.RemovedItems)
@@ -211,93 +200,39 @@ namespace Win115.Views
             }
         }
 
-        private void chk_all_Checked(object sender, RoutedEventArgs e)
+        private void lv_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (viewModel is null)
+            if (sender is not ListView || viewModel is null|| viewModel.FileItems.Count == 0 || _user is null)
             {
                 return;
             }
-            if (viewModel.ListVisibility == Visibility.Visible)
+            Debug.WriteLine($"===>lv_SelectionChanged");
+            if (e.RemovedItems is not null && e.RemovedItems.Count > 0)
             {
-                lv.SelectAll();
-            }
-            else
-            {
-                iv.SelectAll();
-            }
-        }
-
-        private void chk_all_Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (viewModel is null)
-            {
-                return;
-            }
-            if (viewModel.ListVisibility == Visibility.Visible)
-            {
-                lv.SelectedItems.Clear();
-            }
-            else
-            {
-                iv.DeselectAll();
-            }
-        }
-
-        private void chk_viewAll_Checked(object sender, RoutedEventArgs e)
-        {
-            if (viewModel is null)
-            {
-                return;
-            }
-            viewModel.ListVisibility = Visibility.Collapsed;
-            viewModel.ViewAllVisibility = Visibility.Visible;
-            iv.SelectionChanged -= iv_SelectionChanged;
-            iv.DeselectAll();
-            foreach (var item in viewModel.SelectedFileItems)
-            {
-                var index = viewModel.FileItems.IndexOf(item);
-                iv.Select(index);
-            }
-            iv.SelectionChanged += iv_SelectionChanged;
-        }
-
-        private void chk_list_Checked(object sender, RoutedEventArgs e)
-        {
-            if (viewModel is null)
-            {
-                return;
-            }
-            viewModel.ViewAllVisibility = Visibility.Collapsed;
-            viewModel.ListVisibility = Visibility.Visible;
-            lv.SelectionChanged -= lv_SelectionChanged;
-            lv.SelectedItems.Clear();
-            foreach (var item in viewModel.SelectedFileItems)
-            {
-                lv.SelectedItems.Add(item);
-            }
-            lv.SelectionChanged += lv_SelectionChanged;
-        }
-
-        private void iv_SelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs e)
-        {
-            if (viewModel is null || viewModel.FileItems.Count == 0 || _user is null)
-            {
-                return;
-            }
-            Debug.WriteLine($"===>iv_SelectionChanged");
-            viewModel.SelectedFileItems.Clear();
-            foreach (var f in iv.SelectedItems)
-            {
-                var _f = (MyFileItemModel)f;
-                try
+                foreach (var f in e.RemovedItems)
                 {
-                    if (viewModel.SelectedFileItems.Any(x => x.Id == _f.Id))
+                    try
                     {
-                        continue;
+                        viewModel.SelectedFileItems.Remove((MyFileItemModel)f);
                     }
-                    viewModel.SelectedFileItems.Add(_f);
+                    catch { }
                 }
-                catch { }
+            }
+            if (e.AddedItems is not null && e.AddedItems.Count > 0)
+            {
+                foreach (var f in e.AddedItems)
+                {
+                    var _f = (MyFileItemModel)f;
+                    try
+                    {
+                        if (viewModel.SelectedFileItems.Any(x => x.Id == _f.Id))
+                        {
+                            continue;
+                        }
+                        viewModel.SelectedFileItems.Add(_f);
+                    }
+                    catch { }
+                }
             }
             viewModel.HasSelectedItems = viewModel.SelectedFileItems.Count > 0 && _user.IsLogin;
             if (viewModel.SelectedFileItems.Count == viewModel.FileItems.Count)
@@ -464,6 +399,25 @@ namespace Win115.Views
                     break;
             }
             await viewModel.RefreshFilesCommand.ExecuteAsync(null);
+        }
+
+        private void item_menu_Opening(object sender, object e)
+        {
+            if (sender is MenuFlyout flyout && flyout.Target is ListViewItem element)
+            {
+                foreach (var menu in flyout.Items)
+                {
+                    if (menu is MenuFlyoutItem item)
+                    {
+                        item.CommandParameter = element.Content;
+                    }
+                }
+            }
+        }
+
+        internal void UpdatePathBar(List<SelectOptionItem> paths)
+        {
+            path_bar.ItemsSource = paths;
         }
     }
 }
