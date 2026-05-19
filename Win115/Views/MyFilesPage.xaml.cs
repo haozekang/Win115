@@ -419,5 +419,18 @@ namespace Win115.Views
         {
             path_bar.ItemsSource = paths;
         }
+
+        private async void lv_PointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            var point = e.GetCurrentPoint((UIElement)sender);
+            if (viewModel is null)
+            {
+                return;
+            }
+            if (point.Properties.IsXButton1Pressed)
+            {
+                await viewModel.ParentDirectoryCommand.ExecuteAsync(null);
+            }
+        }
     }
 }

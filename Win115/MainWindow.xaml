@@ -73,7 +73,7 @@
                     HorizontalAlignment="Right"
                     Orientation="Horizontal"
                     Spacing="4">
-                    <!--<AppBarButton
+                    <AppBarButton
                         Width="42"
                         MinWidth="28"
                         MinHeight="28"
@@ -84,7 +84,7 @@
                         <AppBarButton.Icon>
                             <FontIcon Glyph="&#xE71B;" />
                         </AppBarButton.Icon>
-                    </AppBarButton>-->
+                    </AppBarButton>
                     <AppBarButton
                         Width="42"
                         MinWidth="28"

@@ -10,12 +10,199 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="using:CommunityToolkit.WinUI"
     xmlns:vm="using:Win115.ViewModels"
-    Margin="15,15,15,15"
+    Margin="5,5,5,5"
     d:DataContext="{d:DesignInstance vm:BackStationViewModel,
                                      IsDesignTimeCreatable=False}"
     mc:Ignorable="d">
 
     <Grid>
-        <TextBlock Text="BackStationPage" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <CommandBar
+            HorizontalAlignment="Left"
+            IsDynamicOverflowEnabled="False"
+            OverflowButtonVisibility="Collapsed">
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.RecycleSelectedCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE81C;'}"
+                IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
+                ToolTipService.ToolTip="恢复所选项目" />
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.DeleteSelectedCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE74D;'}"
+                IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
+                ToolTipService.ToolTip="彻底删除所选项目" />
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.ClearAllCommand}"
+                Icon="{ui:FontIcon Glyph='&#xEA99;'}"
+                IsEnabled="{x:Bind viewModel.CanClearAll, Mode=OneWay}"
+                ToolTipService.ToolTip="清空回收站" />
+        </CommandBar>
+        <ListView
+            x:Name="lv"
+            Grid.Row="1"
+            MinWidth="800"
+            Margin="0,0,0,0"
+            ItemsSource="{x:Bind viewModel.FileItems, Mode=OneWay}"
+            SelectionChanged="lv_SelectionChanged"
+            SelectionMode="Multiple">
+            <ListView.Header>
+                <controls:DataTable Margin="10,0,0,0">
+                    <controls:DataColumn DesiredWidth="*">
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox
+                                MinWidth="34"
+                                Margin="0"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Canvas.ZIndex="98"
+                                Checked="chk_all_Checked"
+                                IsChecked="{x:Bind viewModel.IsCheckAll, Mode=TwoWay}"
+                                Unchecked="chk_all_Unchecked" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontWeight="Bold"
+                                Text="文件名" />
+                        </StackPanel>
+                    </controls:DataColumn>
+                    <controls:DataColumn
+                        MinWidth="180"
+                        Margin="30,0,0,0"
+                        Content="原位置"
+                        DesiredWidth="180"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="100"
+                        Margin="30,0,0,0"
+                        Content="大小"
+                        DesiredWidth="100"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="100"
+                        Margin="30,0,0,0"
+                        Content="种类"
+                        DesiredWidth="100"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="160"
+                        Margin="30,0,0,0"
+                        Content="删除时间"
+                        DesiredWidth="160"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="120"
+                        Margin="30,0,0,0"
+                        Content="操作"
+                        DesiredWidth="120"
+                        FontWeight="Bold" />
+                </controls:DataTable>
+            </ListView.Header>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="m:RbFileItemModel">
+                    <controls:DataRow>
+                        <TextBlock VerticalAlignment="Center" Text="{x:Bind FileName, Mode=OneWay}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{x:Bind ParentName, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Margin="0,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind FileSizeText, Mode=OneWay}" />
+                        <TextBlock
+                            Margin="0,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind TypeText, Mode=OneWay}" />
+                        <TextBlock
+                            Margin="0,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind DeleteTimeText, Mode=OneWay}" />
+                        <StackPanel
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="5">
+                            <Button
+                                x:Name="btn_recycle_item"
+                                Padding="5"
+                                Click="btn_recycle_item_Click"
+                                Foreground="{ThemeResource TextSelectionHighlightColorThemeBrush}"
+                                ToolTipService.ToolTip="恢复">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE81C;" />
+                                </Button.Content>
+                            </Button>
+                            <TeachingTip
+                                ActionButtonCommand="{x:Bind RecycleCommand}"
+                                ActionButtonContent="确认"
+                                CloseButtonContent="取消"
+                                IsOpen="{x:Bind ShowRecycleTip, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PreferredPlacement="Top"
+                                Target="{Binding ElementName=btn_recycle_item}">
+                                <TeachingTip.IconSource>
+                                    <SymbolIconSource Foreground="Green" Symbol="Delete" />
+                                </TeachingTip.IconSource>
+                                <TeachingTip.Title>
+                                    <x:String>确认</x:String>
+                                </TeachingTip.Title>
+                                <TeachingTip.Content>
+                                    <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                                        <Run Text="您确认要恢复[" />
+                                        <Run Foreground="Red" Text="{x:Bind FileName}" />
+                                        <Run Text="]吗？" />
+                                    </TextBlock>
+                                </TeachingTip.Content>
+                            </TeachingTip>
+                            <Button
+                                x:Name="btn_delete_item"
+                                Padding="5"
+                                Click="btn_delete_item_Click"
+                                Foreground="{ThemeResource SystemControlErrorTextForegroundBrush}"
+                                ToolTipService.ToolTip="删除">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE74D;" />
+                                </Button.Content>
+                            </Button>
+                            <TeachingTip
+                                ActionButtonCommand="{x:Bind DeleteCommand}"
+                                ActionButtonContent="确认"
+                                CloseButtonContent="取消"
+                                IsOpen="{x:Bind ShowDeleteTip, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PreferredPlacement="Top"
+                                Target="{Binding ElementName=btn_delete_item}">
+                                <TeachingTip.IconSource>
+                                    <SymbolIconSource Foreground="Red" Symbol="Delete" />
+                                </TeachingTip.IconSource>
+                                <TeachingTip.Title>
+                                    <x:String>警告！</x:String>
+                                </TeachingTip.Title>
+                                <TeachingTip.Content>
+                                    <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                                        <Run Text="您确认要删除[" />
+                                        <Run Foreground="Red" Text="{x:Bind FileName}" />
+                                        <Run Text="]吗？文件将被彻底删除且不可恢复！" />
+                                    </TextBlock>
+                                </TeachingTip.Content>
+                            </TeachingTip>
+                        </StackPanel>
+                    </controls:DataRow>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <StackPanel
+            Grid.Row="2"
+            Margin="10,5,10,5"
+            Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center">
+                <Run Text="共" />
+                <Run FontWeight="Bold" Text="{x:Bind viewModel.FileItems.Count, Mode=OneWay}" />
+                <Run Text="项" />
+            </TextBlock>
+        </StackPanel>
     </Grid>
 </Page>

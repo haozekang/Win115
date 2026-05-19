@@ -87,6 +87,8 @@ namespace Win115
                     Url = task.Url
                 });
             }
+
+            var uploadListViewModel = App.Resolve<UploadListViewModel>();
         }
 
         private void TitleBar_PaneToggleRequested(TitleBar sender, object args)

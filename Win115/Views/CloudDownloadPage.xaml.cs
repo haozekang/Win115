@@ -40,5 +40,31 @@ namespace Win115.Views
             viewModel = App.Resolve<CloudDownloadViewModel>();
             _user = App.Resolve<UserInfoModel>();
         }
+
+        private async void btn_delete_item_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewModel is null || sender is not Button btn)
+            {
+                return;
+            }
+            if (btn.DataContext is not CloudTaskItemModel item)
+            {
+                return;
+            }
+            item.ShowDeleteTip = true;
+        }
+
+        private async void btn_detail_item_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewModel is null || sender is not Button btn)
+            {
+                return;
+            }
+            if (btn.DataContext is not CloudTaskItemModel item)
+            {
+                return;
+            }
+            await viewModel.ItemDetailCommand.ExecuteAsync(item);
+        }
     }
 }

@@ -10,12 +10,114 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="using:CommunityToolkit.WinUI"
     xmlns:vm="using:Win115.ViewModels"
-    Margin="15,15,15,15"
+    Margin="5,5,5,5"
     d:DataContext="{d:DesignInstance vm:CloudDownloadViewModel,
                                      IsDesignTimeCreatable=False}"
     mc:Ignorable="d">
 
     <Grid>
-        <TextBlock Text="CloudDownloadPage" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <CommandBar
+            HorizontalAlignment="Left"
+            IsDynamicOverflowEnabled="False"
+            OverflowButtonVisibility="Collapsed">
+            <AppBarButton
+                Width="45"
+                Command="{x:Bind viewModel.RefreshTasksCommand}"
+                Icon="Refresh"
+                ToolTipService.ToolTip="刷新任务列表" />
+        </CommandBar>
+        <ListView
+            x:Name="lv"
+            Grid.Row="1"
+            MinWidth="800"
+            Margin="0,0,0,0"
+            ItemsSource="{x:Bind viewModel.TaskItems, Mode=OneWay}">
+            <ListView.Header>
+                <controls:DataTable Margin="12,0,0,0">
+                    <controls:DataColumn
+                        Content="文件名"
+                        DesiredWidth="*"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="100"
+                        Content="大小"
+                        DesiredWidth="100"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="160"
+                        Content="进度"
+                        DesiredWidth="160"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="120"
+                        Content="操作"
+                        DesiredWidth="120"
+                        FontWeight="Bold" />
+                </controls:DataTable>
+            </ListView.Header>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="m:CloudTaskItemModel">
+                    <controls:DataRow>
+                        <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{x:Bind FileSizeText, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Margin="0,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind PercentDone, Mode=OneWay}" />
+                        <StackPanel
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="5">
+                            <Button
+                                x:Name="btn_detail_item"
+                                Padding="5"
+                                Click="btn_detail_item_Click"
+                                Foreground="{ThemeResource TextSelectionHighlightColorThemeBrush}"
+                                ToolTipService.ToolTip="查看">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE838;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind CopyUrlCommand}"
+                                Foreground="{ThemeResource TextSelectionHighlightColorThemeBrush}"
+                                ToolTipService.ToolTip="复制">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE8C8;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind DeleteCommand}"
+                                Foreground="{ThemeResource SystemControlErrorTextForegroundBrush}"
+                                ToolTipService.ToolTip="删除">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE74D;" />
+                                </Button.Content>
+                            </Button>
+                        </StackPanel>
+                    </controls:DataRow>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <StackPanel
+            Grid.Row="2"
+            Margin="10,5,10,5"
+            Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center">
+                <Run Text="共" />
+                <Run FontWeight="Bold" Text="{x:Bind viewModel.TaskItems.Count, Mode=OneWay}" />
+                <Run Text="项" />
+            </TextBlock>
+        </StackPanel>
     </Grid>
 </Page>

@@ -183,6 +183,32 @@ namespace Win115.ViewModels
         }
 
         /// <summary>
+        /// 上传文件
+        /// </summary>
+        [RelayCommand]
+        public async Task UploadFile()
+        {
+            var vm = App.Resolve<UploadListViewModel>();
+            if (vm is null)
+            {
+                return;
+            }
+            FileOpenPicker picker = new();
+            picker.FileTypeFilter.Add("*");
+            InitializeWithWindow.Initialize(picker, App.WindowHandle);
+            var files = await picker.PickMultipleFilesAsync();
+            if (files is null || files.Count <= 0)
+            {
+                return;
+            }
+            foreach (var f in files)
+            {
+                await vm.AddTask(f.Path, $"{PathItems.Last().Id}");
+            }
+            await App.JumpPage(MenuKeys.UploadList);
+        }
+
+        /// <summary>
         /// 新建目录
         /// </summary>
         [RelayCommand]
@@ -222,6 +248,10 @@ namespace Win115.ViewModels
                 if (PathItems.Count == 1)
                 {
                     req.AddOrUpdateParameter("pid", "0");
+                }
+                else
+                {
+                    req.AddOrUpdateParameter("pid", PathItems.Last().Id);
                 }
                 req.AddOrUpdateParameter("file_name", vm.FileName);
                 req.AlwaysMultipartFormData = true;

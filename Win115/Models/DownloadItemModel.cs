@@ -52,7 +52,7 @@ namespace Win115.Models
         public partial string? PickCode { get; set; } = string.Empty;
 
         [ObservableProperty]
-        public partial DownloadTaskStateEnum State { get; set; } = DownloadTaskStateEnum.Queued;
+        public partial DownloadTaskStateEnum State { get; set; } = DownloadTaskStateEnum.Canceled;
 
         [ObservableProperty]
         public partial bool ShowDeleteTip { get; set; } = false;

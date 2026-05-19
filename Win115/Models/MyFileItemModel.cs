@@ -153,6 +153,8 @@ namespace Win115.Models
                 "iso" => "\uE958",
                 "txt" => "\uE8D2",
                 "mp3" => "\uE8D6",
+                "avi" or
+                "mkv" or
                 "mp4" => "\uE8B2",
                 "png" or
                 "jpg" or

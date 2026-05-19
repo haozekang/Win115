@@ -106,6 +106,8 @@ namespace Win115
 
             builder.RegisterType<LoginViewModel>().AsSelf().InstancePerLifetimeScope();
             builder.RegisterType<NewFolderViewModel>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<NewCloudDownloadViewModel>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<SelectSavePathViewModel>().AsSelf().InstancePerLifetimeScope();
 
             builder.RegisterInstance(new RestClient(configureSerialization: s =>
             {

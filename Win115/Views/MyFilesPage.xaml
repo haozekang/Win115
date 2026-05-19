@@ -34,7 +34,10 @@
                 Command="{x:Bind viewModel.DownloadOtherDirRightMenuCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE896;'}"
                 Text="下载（另存为）" />
-            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE898;'}" Text="上传文件" />-->
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.UploadFileCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE898;'}"
+                Text="上传文件" />
             <MenuFlyoutSeparator />
             <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8C8;'}" Text="复制到" />
             <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8DE;'}" Text="移动到" />
@@ -295,11 +298,12 @@
                 Icon="NewFolder"
                 IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
                 ToolTipService.ToolTip="新建文件夹" />
-            <!--<AppBarButton
+            <AppBarButton
                 Width="45"
+                Command="{x:Bind viewModel.UploadFileCommand}"
                 Icon="Upload"
                 IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
-                ToolTipService.ToolTip="上传" />-->
+                ToolTipService.ToolTip="上传" />
             <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.DownloadSelectedCommand}"
@@ -374,6 +378,7 @@
                 IsDoubleTapEnabled="True"
                 IsItemClickEnabled="True"
                 ItemsSource="{x:Bind viewModel.FileItems, Mode=OneWay}"
+                PointerPressed="lv_PointerPressed"
                 SelectionChanged="iv_SelectionChanged"
                 SelectionMode="Multiple"
                 Visibility="{x:Bind viewModel.ViewAllVisibility, Mode=OneWay}">
@@ -417,6 +422,7 @@
                 IsDoubleTapEnabled="True"
                 IsItemClickEnabled="True"
                 ItemsSource="{x:Bind viewModel.FileItems, Mode=OneWay}"
+                PointerPressed="lv_PointerPressed"
                 SelectionChanged="lv_SelectionChanged"
                 SelectionMode="Multiple"
                 Visibility="{x:Bind viewModel.ListVisibility, Mode=OneWay}">

@@ -10,7 +10,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="using:CommunityToolkit.WinUI"
     xmlns:vm="using:Win115.ViewModels"
-    Margin="15,15,15,15"
+    Margin="5,5,5,5"
     d:DataContext="{d:DesignInstance vm:UploadListViewModel,
                                      IsDesignTimeCreatable=False}"
     mc:Ignorable="d">
@@ -57,9 +57,9 @@
                         DesiredWidth="140"
                         FontWeight="Bold" />
                     <controls:DataColumn
-                        MinWidth="200"
+                        MinWidth="100"
                         Content="进度"
-                        DesiredWidth="200"
+                        DesiredWidth="100"
                         FontWeight="Bold" />
                     <controls:DataColumn
                         MinWidth="120"
@@ -74,12 +74,12 @@
                         <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
                         <TextBlock
                             VerticalAlignment="Center"
-                            Text="{x:Bind Size, Mode=OneWay}"
+                            Text="{x:Bind SizeText, Mode=OneWay}"
                             TextWrapping="Wrap" />
                         <TextBlock
                             Margin="0,0,8,0"
                             VerticalAlignment="Center"
-                            Text="{x:Bind Progress, Mode=OneWay}" />
+                            Text="{x:Bind ProgressText, Mode=OneWay}" />
                         <StackPanel
                             VerticalAlignment="Center"
                             Orientation="Horizontal"

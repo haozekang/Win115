@@ -97,6 +97,87 @@ namespace Win115.Properties {
         }
         
         /// <summary>
+        ///   查找类似 /open/folder/get_info 的本地化字符串。
+        /// </summary>
+        internal static string OpenFolderGetInfo {
+            get {
+                return ResourceManager.GetString("OpenFolderGetInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/offline/add_task_bt 的本地化字符串。
+        /// </summary>
+        internal static string OpenOfflineAddTaskBT {
+            get {
+                return ResourceManager.GetString("OpenOfflineAddTaskBT", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/offline/add_task_urls 的本地化字符串。
+        /// </summary>
+        internal static string OpenOfflineAddTaskUrls {
+            get {
+                return ResourceManager.GetString("OpenOfflineAddTaskUrls", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/offline/clear_task 的本地化字符串。
+        /// </summary>
+        internal static string OpenOfflineClearTask {
+            get {
+                return ResourceManager.GetString("OpenOfflineClearTask", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/offline/del_task 的本地化字符串。
+        /// </summary>
+        internal static string OpenOfflineDelTask {
+            get {
+                return ResourceManager.GetString("OpenOfflineDelTask", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/offline/get_quota_info 的本地化字符串。
+        /// </summary>
+        internal static string OpenOfflineGetQuotaInfo {
+            get {
+                return ResourceManager.GetString("OpenOfflineGetQuotaInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/offline/get_task_list 的本地化字符串。
+        /// </summary>
+        internal static string OpenOfflineGetTaskList {
+            get {
+                return ResourceManager.GetString("OpenOfflineGetTaskList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/offline/torrent 的本地化字符串。
+        /// </summary>
+        internal static string OpenOfflineTorrent {
+            get {
+                return ResourceManager.GetString("OpenOfflineTorrent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/rb/del 的本地化字符串。
+        /// </summary>
+        internal static string OpenRbDel {
+            get {
+                return ResourceManager.GetString("OpenRbDel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 /open/rb/list 的本地化字符串。
         /// </summary>
         internal static string OpenRbList {
@@ -106,11 +187,29 @@ namespace Win115.Properties {
         }
         
         /// <summary>
+        ///   查找类似 /open/rb/revert 的本地化字符串。
+        /// </summary>
+        internal static string OpenRbRevert {
+            get {
+                return ResourceManager.GetString("OpenRbRevert", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 /open/refreshToken 的本地化字符串。
         /// </summary>
         internal static string OpenRefreshToken {
             get {
                 return ResourceManager.GetString("OpenRefreshToken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/ufile/copy 的本地化字符串。
+        /// </summary>
+        internal static string OpenUfileCopy {
+            get {
+                return ResourceManager.GetString("OpenUfileCopy", resourceCulture);
             }
         }
         
@@ -142,11 +241,56 @@ namespace Win115.Properties {
         }
         
         /// <summary>
+        ///   查找类似 /open/ufile/move 的本地化字符串。
+        /// </summary>
+        internal static string OpenUfileMove {
+            get {
+                return ResourceManager.GetString("OpenUfileMove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 /open/ufile/search 的本地化字符串。
         /// </summary>
         internal static string OpenUfileSearch {
             get {
                 return ResourceManager.GetString("OpenUfileSearch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/ufile/update 的本地化字符串。
+        /// </summary>
+        internal static string OpenUfileUpdate {
+            get {
+                return ResourceManager.GetString("OpenUfileUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/upload/get_token 的本地化字符串。
+        /// </summary>
+        internal static string OpenUploadGetToken {
+            get {
+                return ResourceManager.GetString("OpenUploadGetToken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/upload/init 的本地化字符串。
+        /// </summary>
+        internal static string OpenUploadInit {
+            get {
+                return ResourceManager.GetString("OpenUploadInit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/upload/resume 的本地化字符串。
+        /// </summary>
+        internal static string OpenUploadResume {
+            get {
+                return ResourceManager.GetString("OpenUploadResume", resourceCulture);
             }
         }
         

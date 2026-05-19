@@ -20,6 +20,7 @@ using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
 using Win115.Views;
+using static QRCoder.PayloadGenerator;
 
 namespace Win115.ViewModels
 {
@@ -40,10 +41,10 @@ namespace Win115.ViewModels
         public partial ObservableCollection<NavigationViewItem> MenuItems { get; set; } = new ObservableCollection<NavigationViewItem>()
         {
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE977" }, Content = "我的文件", Tag = MenuKeys.MyFiles },
-            //new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE74D" }, Content = "回收站", Tag = MenuKeys.BackStation },
-            //new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uEBD3" }, Content = "云下载", Tag = MenuKeys.CloudDownload },
+            new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE74D" }, Content = "回收站", Tag = MenuKeys.BackStation },
+            new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uEBD3" }, Content = "云下载", Tag = MenuKeys.CloudDownload },
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE896" }, Content = "下载列表", Tag = MenuKeys.DownloadList },
-            //new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE898" }, Content = "上传列表", Tag = MenuKeys.UploadList },
+            new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE898" }, Content = "上传列表", Tag = MenuKeys.UploadList },
         };
 
         [ObservableProperty]
@@ -132,6 +133,58 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task OfflineDownload()
         {
+            var title = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+            };
+            title.Children.Add(new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 24,
+                FontWeight = FontWeights.Bold,
+                Text = "添加离线下载",
+                Margin = new Thickness(10, 0, 0, 0),
+            });
+            using var scope = App.CreateScope();
+            var vm = scope.Resolve<NewCloudDownloadViewModel>();
+            NewCloudDownloadContentDialog dialog = new NewCloudDownloadContentDialog(vm);
+            dialog.XamlRoot = App.XamlRoot;
+            dialog.Title = title;
+            dialog.PrimaryButtonText = "保存";
+            dialog.SecondaryButtonText = "取消";
+            dialog.DefaultButton = ContentDialogButton.Primary;
+            dialog.PrimaryButtonCommand = OfflineAddTaskCommand;
+            dialog.PrimaryButtonCommandParameter = vm;
+            await dialog.ShowAsync();
+        }
+
+        [RelayCommand]
+        public async Task OfflineAddTask(NewCloudDownloadViewModel vm)
+        {
+            if (vm is null)
+            {
+                return;
+            }
+            var req = new RestRequest(ApiResource.OpenOfflineAddTaskUrls);
+            req.AddParameter("urls", vm.Urls);
+            req.AddParameter("wp_path_id", $"{vm.SavePathId}");
+            var res = await App.ProApiClient.PostAsync(req);
+            if (!res.IsSuccessful || res.Content.IsBlank())
+            {
+                return;
+            }
+            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            if (dto is null)
+            {
+                return;
+            }
+            if (!dto.State || dto.Data is null)
+            {
+                return;
+            }
+            await App.JumpPage(MenuKeys.CloudDownload);
+            var viewModel = App.Resolve<CloudDownloadViewModel>();
+            await viewModel.RefreshTasksCommand.ExecuteAsync(null);
         }
 
         [RelayCommand]
