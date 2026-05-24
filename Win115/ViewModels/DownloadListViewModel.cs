@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.WinUI;
 using Downloader;
 using LiteDB;
 using Microsoft.UI.Dispatching;
@@ -27,13 +28,12 @@ using Win115.Handlers;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
-using static QRCoder.PayloadGenerator;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Win115.ViewModels
 {
     public partial class DownloadListViewModel : ObservableRecipient
     {
+        private SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
         private LiteDatabase _db;
         private Channel<DownloadItemModel> DownloadQueue = Channel.CreateUnbounded<DownloadItemModel>();
 
@@ -53,15 +53,76 @@ namespace Win115.ViewModels
             Task.Factory.StartNew(CheckTaskState);
         }
 
+        /// <summary>
+        /// 登出后，清理
+        /// </summary>
+        [RelayCommand]
+        public async Task ClearData()
+        {
+            try
+            {
+                var col = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+                // 处理尚在队列，未读取到的任务
+                var downloads = DownloadQueue.Reader.ReadAllAsync();
+                await foreach (var down in downloads)
+                {
+                    var find = col.Query().Where(x => x.Id == down.TaskId).Single();
+                    if (find is null)
+                    {
+                        continue;
+                    }
+                    find.State = DownloadTaskStateEnum.Queued;
+                    find.Size = down.Size;
+                    find.Progress = down.Progress;
+                    find.SavePath = down.SavePath;
+                    find.Url = down.Url;
+                    find.PickCode = down.PickCode;
+                    col.Update(find);
+                }
+                // 处理正在处理的任务
+                foreach (var down in DownloadItems)
+                {
+                    var find = col.Query().Where(x => x.Id == down.TaskId).Single();
+                    if (find is null)
+                    {
+                        continue;
+                    }
+                    if (down.State == DownloadTaskStateEnum.Downloading)
+                    {
+                        find.State = DownloadTaskStateEnum.Paused;
+                    }
+                    find.Size = down.Size;
+                    find.Progress = down.Progress;
+                    find.SavePath = down.SavePath;
+                    find.Url = down.Url;
+                    find.PickCode = down.PickCode;
+                    col.Update(find);
+                }
+                App.DispatcherQueue?.TryEnqueue(() =>
+                {
+                    DownloadItems.Clear();
+                });
+            }
+            finally
+            {
+            }
+        }
+
         private async Task ReadTask()
         {
             Debug.WriteLine($"===>Download task reader start!");
-            await foreach (var item in DownloadQueue.Reader.ReadAllAsync())
+            try
             {
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await foreach (var item in DownloadQueue.Reader.ReadAllAsync())
                 {
-                    DownloadItems.Insert(0, item);
-                });
+                    App.DispatcherQueue?.TryEnqueue(() =>
+                    {
+                        DownloadItems.Insert(0, item);
+                    });
+                }
+            }
+            finally
+            {
             }
             Debug.WriteLine($"===>Download task reader close!");
         }
@@ -72,16 +133,24 @@ namespace Win115.ViewModels
             while (true)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1));
-                var downloadingTasks = DownloadItems.Where(t => t.State == DownloadTaskStateEnum.Downloading);
-                if (downloadingTasks.Count() >= 5)
+                try
                 {
-                    continue;
+                    await _semaphoreSlim.WaitAsync();
+                    var downloadingTasks = DownloadItems.Where(t => t.State == DownloadTaskStateEnum.Downloading);
+                    if (downloadingTasks.Count() >= 5)
+                    {
+                        continue;
+                    }
+                    var newCount = 5 - downloadingTasks.Count();
+                    var newStartTasks = DownloadItems.Where(t => t.State == DownloadTaskStateEnum.Queued).Take(newCount);
+                    foreach (var task in newStartTasks)
+                    {
+                        _ = DownloadFileAsync(task);
+                    }
                 }
-                var newCount = 5 - downloadingTasks.Count();
-                var newStartTasks = DownloadItems.Where(t => t.State == DownloadTaskStateEnum.Queued).Take(newCount);
-                foreach (var task in newStartTasks)
+                finally
                 {
-                    _ = DownloadFileAsync(task);
+                    _semaphoreSlim.Release();
                 }
             }
         }
@@ -100,26 +169,43 @@ namespace Win115.ViewModels
             client.BaseAddress = baseUri;
             var headReq = new HttpRequestMessage(HttpMethod.Head, uri.PathAndQuery);
             var headRes = await client.SendAsync(headReq);
-
+            var col = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            var find = col.Query().Where(x => x.Id == task.TaskId).Single();
             var downReq = new HttpRequestMessage(HttpMethod.Get, uri.PathAndQuery);
+            if (find is null)
+            {
+                App.DispatcherQueue?.TryEnqueue(() =>
+                {
+                    task.State = DownloadTaskStateEnum.Failed;
+                });
+                return;
+            }
+            var jump = find.DownloadedSize ?? 0;
+            downReq.Headers.Range = new RangeHeaderValue(jump, null);
             try
             {
                 using var downRes = await client.SendAsync(downReq, HttpCompletionOption.ResponseHeadersRead);
                 downRes.EnsureSuccessStatusCode();
-                double? totalBytes = downRes.Content.Headers.ContentLength;
+                long? totalBytes = downRes.Content.Headers.ContentLength + jump;
+                if (jump == 0)
+                {
+                    find.Size = totalBytes;
+                    col.Update(find);
+                }
                 await using Stream input = await downRes.Content.ReadAsStreamAsync();
                 await using FileStream output = new FileStream(
                     task.SavePath!,
-                    FileMode.Create,
+                    FileMode.OpenOrCreate,
                     FileAccess.Write,
                     FileShare.None,
                     bufferSize: 1024,
                     useAsync: true);
-                byte[] buffer = new byte[81920];
-                long totalRead = 0;
+                // 移动到已经下载的位置
+                output.Seek(jump, SeekOrigin.Begin);
+                byte[] buffer = new byte[10 * 1024];
+                long totalRead = jump;
                 int bytesRead;
-                // 异步复制到文件
-                // await input.CopyToAsync(output);
+                // 复制到文件
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 long bytesSinceLastReport = 0;
                 long lastReportMilliseconds = 0;
@@ -129,10 +215,17 @@ namespace Win115.ViewModels
                     // 写入文件
                     await output.WriteAsync(buffer.AsMemory(0, bytesRead));
                     await output.FlushAsync();
-
+                    if (task.State != DownloadTaskStateEnum.Downloading)
+                    {
+                        break;
+                    }
                     // 更新统计
                     totalRead += bytesRead;
                     bytesSinceLastReport += bytesRead;
+
+                    // 记录下载进度
+                    find.DownloadedSize = totalRead;
+                    col.Update(find);
 
                     // 每 500ms 报一次进度
                     long elapsedMs = stopwatch.ElapsedMilliseconds;
@@ -147,7 +240,7 @@ namespace Win115.ViewModels
                         {
                             if (totalBytes != 0)
                             {
-                                task.Progress = $"{(totalRead / totalBytes):P}";
+                                task.Progress = totalRead * 1.0 / totalBytes;
                             }
                             task.Speed = (long)speed;
                         });
@@ -159,28 +252,25 @@ namespace Win115.ViewModels
 
                 // 最后再报告一次
                 double averageSpeed = totalRead / Math.Max(1, stopwatch.Elapsed.TotalSeconds);
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await App.DispatcherQueue!.EnqueueAsync(() =>
                 {
                     if (totalBytes != 0)
                     {
-                        task.Progress = $"{(totalRead / totalBytes):P}";
+                        task.Progress = totalRead * 1.0/ totalBytes;
                     }
                     task.Speed = (long)averageSpeed;
+                    // 防击穿
+                    if (totalRead >= totalBytes)
+                    {
+                        task.State = DownloadTaskStateEnum.Completed;
+                    }
                 });
                 // 确保写入磁盘（可选）
                 await output.FlushAsync();
-                var col = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
-                var find = col.Query().Where(x => x.Id == task.TaskId).SingleOrDefault();
-                if (find is not null)
-                {
-                    find.State = DownloadTaskStateEnum.Completed;
-                    find.Progress = "100%";
-                    col.Update(find);
-                }
-                App.DispatcherQueue?.TryEnqueue(() =>
-                {
-                    task.State = DownloadTaskStateEnum.Completed;
-                });
+                find.DownloadedSize = totalRead;
+                find.State = task.State;
+                find.Progress = totalRead * 1.0/ totalBytes;
+                col.Update(find);
             }
             catch (Exception ex)
             {
@@ -228,7 +318,7 @@ namespace Win115.ViewModels
                 var id = col.Insert(new DownloadTaskEntity
                 {
                     Name = fileName,
-                    Progress = $"{progress:P}",
+                    Progress = progress,
                     State = start ? DownloadTaskStateEnum.Queued : DownloadTaskStateEnum.Paused,
                     SavePath = Path.Combine(saveDirPath, fileName),
                     Size = fileSize,
@@ -241,7 +331,7 @@ namespace Win115.ViewModels
                 {
                     TaskId = id,
                     Name = fileName,
-                    Progress = $"{progress:P}",
+                    Progress = progress,
                     State = start ? DownloadTaskStateEnum.Queued : DownloadTaskStateEnum.Paused,
                     SavePath = Path.Combine(saveDirPath, fileName),
                     Size = fileSize,
@@ -279,11 +369,37 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task PauseAll()
         {
+            var ids = DownloadItems.Where(x => x.State == DownloadTaskStateEnum.Downloading).Select(x => x.TaskId);
+            foreach (var id in ids)
+            {
+                var item = DownloadItems.FirstOrDefault(x => x.TaskId == id);
+                if (item is null || item.State != DownloadTaskStateEnum.Downloading)
+                {
+                    continue;
+                }
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    item.State = DownloadTaskStateEnum.Paused;
+                });
+            }
         }
 
         [RelayCommand]
         public async Task StartAll()
         {
+            var ids = DownloadItems.Where(x => x.State == DownloadTaskStateEnum.Paused).Select(x => x.TaskId);
+            foreach (var id in ids)
+            {
+                var item = DownloadItems.FirstOrDefault(x => x.TaskId == id);
+                if (item is null || item.State != DownloadTaskStateEnum.Paused)
+                {
+                    continue;
+                }
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    item.State = DownloadTaskStateEnum.Queued;
+                });
+            }
         }
     }
 }

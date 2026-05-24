@@ -29,6 +29,7 @@
                 Width="45"
                 Command="{x:Bind viewModel.RefreshTasksCommand}"
                 Icon="Refresh"
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
                 ToolTipService.ToolTip="刷新任务列表" />
         </CommandBar>
         <ListView

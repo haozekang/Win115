@@ -99,6 +99,27 @@ namespace Win115.ViewModels
                     return;
                 }
                 await LogHelper.Trace(resUserInfo.Content);
+                var state = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(resUserInfo.Content!);
+                if (state is null)
+                {
+                    return;
+                }
+                if (state.State != true)
+                {
+                    if (state.Code == 40140123 
+                        || state.Code == 40140124
+                        || state.Code == 40140125
+                        || state.Code == 40140126)
+                    {
+                        User.ExpiresIn = DateTime.MinValue;
+                        resUserInfo = await App.ProApiClient.GetAsync(reqUserInfo);
+                    }
+                    else
+                    {
+                        await App.ShowMessageBar($"{state.Message}", "错误", severity: InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                        return;
+                    }
+                }
                 var userInfo = JsonConvert.DeserializeObject<ProResponseDTO<OpenUserInfoDTO>>(resUserInfo.Content!);
                 if (userInfo is null || userInfo.Data is null)
                 {
@@ -119,10 +140,11 @@ namespace Win115.ViewModels
                 um.VipLevelName = userInfo.Data.VipInfo?.LevelName ?? string.Empty;
                 um.VipExpire = userInfo.Data.VipInfo?.Expire > 0 ? DateTimeOffset.FromUnixTimeSeconds(userInfo.Data.VipInfo.Expire.Value).AddHours(8).DateTime : null;
 
-                _ = App.ShowMessageBar($"用户【{um.UserName}】登录成功，欢迎您使用！", "信息", severity: InfoBarSeverity.Success, autoClose: TimeSpan.FromSeconds(3));
-                _ = App.SetFace(um.FaceS);
                 var vm = App.Resolve<MyFilesViewModel>();
-                _ = vm.RefreshFilesCommand.ExecuteAsync(null);
+                Task.WaitAll(App.ShowMessageBar($"用户【{um.UserName}】登录成功，欢迎您使用！", "信息", severity: InfoBarSeverity.Success, autoClose: TimeSpan.FromSeconds(3)),
+                    App.SetFace(um.FaceS),
+                    vm.RefreshFilesCommand.ExecuteAsync(null), 
+                    LoadHistory());
             }
             catch (Exception ex)
             {
@@ -131,8 +153,81 @@ namespace Win115.ViewModels
         }
 
         [RelayCommand]
+        public async Task LoadHistory()
+        {
+            if (User.IsLogin != true)
+            {
+                return;
+            }
+            var _db = App.Resolve<LiteDatabase>();
+            if (_db.CollectionExists(CollectionResource.System) != true)
+            {
+                return;
+            }
+            // 载入历史下载记录
+            var downloadTaskCol = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            var downs = downloadTaskCol.Find(x => x.UserId == User.UserId);
+            var downloadListViewModel = App.Resolve<DownloadListViewModel>();
+            foreach (var down in downs)
+            {
+                downloadListViewModel.DownloadItems.Add(new DownloadItemModel
+                {
+                    TaskId = down.Id,
+                    Name = down.Name,
+                    Progress = down.Progress,
+                    Size = down.Size,
+                    State = down.State switch
+                    {
+                        DownloadTaskStateEnum.Failed => DownloadTaskStateEnum.Failed,
+                        DownloadTaskStateEnum.Completed => DownloadTaskStateEnum.Completed,
+                        DownloadTaskStateEnum.Canceled => DownloadTaskStateEnum.Canceled,
+                        _ => DownloadTaskStateEnum.Paused
+                    },
+                    SavePath = down.SavePath,
+                    PickCode = down.PickCode,
+                    Url = down.Url
+                });
+            }
+
+            // 载入历史上传记录
+            var uploadTaskCol = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
+            var ups = uploadTaskCol.Find(x => x.UserId == User.UserId);
+            var uploadListViewModel = App.Resolve<UploadListViewModel>();
+            foreach (var up in ups)
+            {
+                uploadListViewModel.UploadItems.Add(new UploadItemModel
+                {
+                    TaskId = up.Id,
+                    Name = up.Name,
+                    FileId = up.FileId,
+                    ParentId = up.ParentId,
+                    Progress = up.Progress,
+                    Size = up.Size,
+                    State = up.State switch
+                    {
+                        UploadTaskStateEnum.Failed => UploadTaskStateEnum.Failed,
+                        UploadTaskStateEnum.Completed => UploadTaskStateEnum.Completed,
+                        UploadTaskStateEnum.Canceled => UploadTaskStateEnum.Canceled,
+                        _ => UploadTaskStateEnum.Paused
+                    },
+                    FilePath = up.FilePath,
+                    PickCode = up.PickCode,
+                    Bucket = up.Bucket,
+                    Object = up.Object,
+                    Endpoint = up.Endpoint,
+                    Region = up.Region,
+                });
+            }
+        }
+
+        [RelayCommand]
         public async Task OfflineDownload()
         {
+            if (User.IsLogin != true)
+            {
+                await App.ShowMessageBar($"请登录后再使用！", "警告", severity: InfoBarSeverity.Warning, autoClose: TimeSpan.FromSeconds(3));
+                return;
+            }
             var title = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -229,25 +324,42 @@ namespace Win115.ViewModels
         }
 
         [RelayCommand]
-        public void SignOut()
+        public async Task SignOut()
         {
-            User.IsLogin = false;
-            User.UserId = string.Empty;
-            User.UserName = string.Empty;
-            User.FaceS = string.Empty;
-            User.FaceM = string.Empty;
-            User.FaceL = string.Empty;
-            User.AllTotalSize = 0;
-            User.AllTotalFormat = string.Empty;
-            User.AllRemainSize = 0;
-            User.AllRemainFormat = string.Empty;
-            User.AllUseSize = 0;
-            User.AllUseFormat = string.Empty;
-            User.VipLevelName = string.Empty;
-            User.VipExpire = null;
             // 清理登录记录
-            var col = _db.GetCollection<TokenEntity>(CollectionResource.Tokens);
-            col.DeleteAll();
+            try
+            {
+                var col = _db.GetCollection<TokenEntity>(CollectionResource.Tokens);
+                col.DeleteAll();
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+            }
+
+            // 清理视图
+            try
+            {
+                var filesView = App.Resolve<MyFilesViewModel>();
+                var backView = App.Resolve<BackStationViewModel>();
+                var cloudView = App.Resolve<CloudDownloadViewModel>();
+                var downView = App.Resolve<DownloadListViewModel>();
+                var upView = App.Resolve<UploadListViewModel>();
+                var searchView = App.Resolve<SearchFilesViewModel>();
+                var userView = App.Resolve<UserViewModel>();
+                await Task.WhenAll(filesView.ClearDataCommand.ExecuteAsync(null),
+                    backView.ClearDataCommand.ExecuteAsync(null),
+                    cloudView.ClearDataCommand.ExecuteAsync(null),
+                    downView.ClearDataCommand.ExecuteAsync(null),
+                    upView.ClearDataCommand.ExecuteAsync(null),
+                    searchView.ClearDataCommand.ExecuteAsync(null),
+                    userView.ClearDataCommand.ExecuteAsync(null));
+            }
+            catch(Exception ex)
+            {
+                await LogHelper.Error(ex);
+            }
+
         }
 
         public void NavigateToPage(Type? type)

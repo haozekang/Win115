@@ -86,5 +86,14 @@ namespace Win115.Properties {
                 return ResourceManager.GetString("Tokens", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   查找类似 upload_task 的本地化字符串。
+        /// </summary>
+        internal static string UploadTask {
+            get {
+                return ResourceManager.GetString("UploadTask", resourceCulture);
+            }
+        }
     }
 }

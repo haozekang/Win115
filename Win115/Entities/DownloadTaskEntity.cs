@@ -9,7 +9,8 @@ namespace Win115.Entities
         public string? UserId { get; set; }
         public string? Name { get; set; }
         public long? Size { get; set; }
-        public string? Progress { get; set; }
+        public long? DownloadedSize { get; set; }
+        public double? Progress { get; set; }
         public string? SavePath { get; set; }
         public string? Url { get; set; }
         public string? PickCode { get; set; }

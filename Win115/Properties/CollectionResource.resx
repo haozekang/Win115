@@ -121,6 +121,10 @@
     <value>download_task</value>
     <comment>下载任务表</comment>
   </data>
+  <data name="UploadTask" xml:space="preserve">
+    <value>upload_task</value>
+    <comment>上传任务表</comment>
+  </data>
   <data name="System" xml:space="preserve">
     <value>system</value>
     <comment>系统配置表</comment>

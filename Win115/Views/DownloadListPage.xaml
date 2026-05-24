@@ -29,17 +29,20 @@
                 Width="45"
                 Command="{x:Bind viewModel.ClearFinishCommand}"
                 Icon="{ui:FontIcon Glyph='&#xEA99;'}"
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
                 ToolTipService.ToolTip="清除已完成" />
-            <!--<AppBarButton
+            <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.PauseAllCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE769;'}"
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
                 ToolTipService.ToolTip="全部暂停" />
             <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.StartAllCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE768;'}"
-                ToolTipService.ToolTip="全部继续" />-->
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
+                ToolTipService.ToolTip="全部继续" />
         </CommandBar>
         <ListView
             Grid.Row="1"
@@ -68,6 +71,11 @@
                         DesiredWidth="80"
                         FontWeight="Bold" />
                     <controls:DataColumn
+                        MinWidth="80"
+                        Content="状态"
+                        DesiredWidth="80"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
                         MinWidth="120"
                         Content="操作"
                         DesiredWidth="120"
@@ -89,7 +97,11 @@
                         <TextBlock
                             Margin="0,0,0,0"
                             VerticalAlignment="Center"
-                            Text="{x:Bind Progress, Mode=OneWay}" />
+                            Text="{x:Bind ProgressText, Mode=OneWay}" />
+                        <TextBlock
+                            Margin="0,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind StateText, Mode=OneWay}" />
                         <StackPanel
                             VerticalAlignment="Center"
                             Orientation="Horizontal"
@@ -101,6 +113,24 @@
                                 ToolTipService.ToolTip="打开">
                                 <Button.Content>
                                     <FontIcon FontSize="13" Glyph="&#xE838;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind PauseCommand}"
+                                ToolTipService.ToolTip="暂停"
+                                Visibility="{x:Bind ShowPauseButton, Mode=OneWay}">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE769;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind StartCommand}"
+                                ToolTipService.ToolTip="开始"
+                                Visibility="{x:Bind ShowStartButton, Mode=OneWay}">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE768;" />
                                 </Button.Content>
                             </Button>
                             <Button

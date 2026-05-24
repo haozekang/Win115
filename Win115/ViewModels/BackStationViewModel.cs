@@ -49,6 +49,22 @@ namespace Win115.ViewModels
             SelectedFileItems = new();
         }
 
+        /// <summary>
+        /// 登出后，清理
+        /// </summary>
+        [RelayCommand]
+        public async Task ClearData()
+        {
+            App.DispatcherQueue?.TryEnqueue(() =>
+            {
+                SelectedFileItems.Clear();
+                FileItems.Clear();
+                HasSelectedItems = false;
+                IsCheckAll = false;
+                CanClearAll = false;
+            });
+        }
+
         [RelayCommand]
         private async Task RefreshFiles()
         {

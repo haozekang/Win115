@@ -4,7 +4,9 @@ using LiteDB;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Newtonsoft.Json;
 using Org.BouncyCastle.Tsp;
+using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +14,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Tanovo.ExtensionMethods;
+using Win115.Dtos;
 using Win115.Entities;
 using Win115.Helpers;
 using Win115.Properties;
@@ -95,11 +99,51 @@ namespace Win115.Models
         [RelayCommand]
         private async Task Recycle()
         {
+            var req = new RestRequest(ApiResource.OpenRbRevert);
+            req.AddParameter("tid", Id);
+            var res = await App.ProApiClient.PostAsync(req);
+            if (!res.IsSuccessful || res.Content.IsBlank())
+            {
+                return;
+            }
+            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            if (dto is null)
+            {
+                return;
+            }
+            if (!dto.State)
+            {
+                await App.ShowMessageBar($"{dto.Message}", "错误", InfoBarSeverity.Error);
+                return;
+            }
+            await App.ShowMessageBar($"文件/文件夹还原成功！", "成功", InfoBarSeverity.Success);
+            var vm = App.Resolve<BackStationViewModel>();
+            await vm.RecycleSelectedCommand.ExecuteAsync(null);
         }
 
         [RelayCommand]
         private async Task Delete()
         {
+            var req = new RestRequest(ApiResource.OpenRbDel);
+            req.AddParameter("tid", Id);
+            var res = await App.ProApiClient.PostAsync(req);
+            if (!res.IsSuccessful || res.Content.IsBlank())
+            {
+                return;
+            }
+            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            if (dto is null)
+            {
+                return;
+            }
+            if (!dto.State)
+            {
+                await App.ShowMessageBar($"{dto.Message}", "错误", InfoBarSeverity.Error);
+                return;
+            }
+            await App.ShowMessageBar($"删除成功！", "成功", InfoBarSeverity.Success);
+            var vm = App.Resolve<BackStationViewModel>();
+            await vm.RecycleSelectedCommand.ExecuteAsync(null);
         }
     }
 }

@@ -4,6 +4,7 @@ using Aliyun.OSS.Model;
 using Aliyun.OSS.Util;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.WinUI;
 using LiteDB;
 using Newtonsoft.Json;
 using Org.BouncyCastle.Crypto.Digests;
@@ -21,11 +22,13 @@ using System.Net.Http;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
+using Win115.Entities;
 using Win115.Enums;
 using Win115.Helpers;
 using Win115.Models;
@@ -36,6 +39,7 @@ namespace Win115.ViewModels
 {
     public partial class UploadListViewModel : ObservableRecipient
     {
+        private SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
         private LiteDatabase _db;
         private string? _uploadingPk;
         private Channel<UploadItemModel> UploadQueue = Channel.CreateUnbounded<UploadItemModel>();
@@ -56,15 +60,81 @@ namespace Win115.ViewModels
             Task.Factory.StartNew(CheckTaskState);
         }
 
+        /// <summary>
+        /// 登出后，清理
+        /// </summary>
+        [RelayCommand]
+        public async Task ClearData()
+        {
+            try
+            {
+                var col = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
+                var uploads = UploadQueue.Reader.ReadAllAsync();
+                await foreach (var up in uploads)
+                {
+                    var find = col.Query().Where(x => x.Id == up.TaskId).Single();
+                    if (find is null)
+                    {
+                        continue;
+                    }
+                    find.FileId = up.FileId;
+                    find.ParentId = up.ParentId;
+                    find.Size = up.Size;
+                    find.Progress = up.Progress;
+                    find.FilePath = up.FilePath;
+                    find.Bucket = up.Bucket;
+                    find.Object = up.Object;
+                    find.Endpoint = up.Endpoint;
+                    find.Region = up.Region;
+                    find.PickCode = up.PickCode;
+                    find.State = UploadTaskStateEnum.Queued;
+                    col.Update(find);
+                }
+                foreach (var up in UploadItems)
+                {
+                    var find = col.Query().Where(x => x.Id == up.TaskId).Single();
+                    if (find is null)
+                    {
+                        continue;
+                    }
+                    find.FileId = up.FileId;
+                    find.ParentId = up.ParentId;
+                    find.Size = up.Size;
+                    find.Progress = up.Progress;
+                    find.FilePath = up.FilePath;
+                    find.Bucket = up.Bucket;
+                    find.Object = up.Object;
+                    find.Endpoint = up.Endpoint;
+                    find.Region = up.Region;
+                    find.PickCode = up.PickCode;
+                    find.State = UploadTaskStateEnum.Queued;
+                    col.Update(find);
+                }
+                App.DispatcherQueue?.TryEnqueue(() => 
+                {
+                    UploadItems.Clear();
+                });
+            }
+            finally
+            {
+            }
+        }
+
         private async Task ReadTask()
         {
             Debug.WriteLine($"===>Upload task reader start!");
-            await foreach (var item in UploadQueue.Reader.ReadAllAsync())
+            try
             {
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await foreach (var item in UploadQueue.Reader.ReadAllAsync())
                 {
-                    UploadItems.Insert(0, item);
-                });
+                    App.DispatcherQueue?.EnqueueAsync(() =>
+                    {
+                        UploadItems.Insert(0, item);
+                    });
+                }
+            }
+            finally
+            {
             }
             Debug.WriteLine($"===>Upload task reader close!");
         }
@@ -75,17 +145,25 @@ namespace Win115.ViewModels
             while (true)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1));
-                var uploadingTasks = UploadItems.Where(t => t.State == UploadTaskStateEnum.Uploading);
-                if (uploadingTasks.Count() >= 1)
+                try
                 {
-                    continue;
+                    await _semaphoreSlim.WaitAsync();
+                    var uploadingTasks = UploadItems.Where(t => t.State == UploadTaskStateEnum.Uploading);
+                    if (uploadingTasks.Count() >= 1)
+                    {
+                        continue;
+                    }
+                    var task = UploadItems.Where(t => t.State == UploadTaskStateEnum.Queued).FirstOrDefault();
+                    if (task is null)
+                    {
+                        continue;
+                    }
+                    await UploadFileAsync(task);
                 }
-                var task = UploadItems.Where(t => t.State == UploadTaskStateEnum.Queued).FirstOrDefault();
-                if (task is null)
+                finally
                 {
-                    continue;
+                    _semaphoreSlim.Release();
                 }
-                await UploadFileAsync(task);
             }
         }
 
@@ -320,7 +398,6 @@ namespace Win115.ViewModels
                 securityToken = dtoToken.Data.SecurityToken;
                 expiration = dtoToken.Data.Expiration;
                 accessKeyId = dtoToken.Data.AccessKeyId;
-
                 App.DispatcherQueue?.TryEnqueue(() =>
                 {
                     task.Region = region;
@@ -602,8 +679,7 @@ namespace Win115.ViewModels
 
         private void streamProgressCallback(object? sender, StreamTransferProgressArgs args)
         {
-            Debug.WriteLine("===>ProgressCallback - Progress: {0}%, TotalBytes:{1}, TransferredBytes:{2} ",
-                args.TransferredBytes * 100 / args.TotalBytes, args.TotalBytes, args.TransferredBytes);
+            var p = args.TransferredBytes * 1.0f / args.TotalBytes;
             if (_uploadingPk.IsNotBlank())
             {
                 App.DispatcherQueue?.TryEnqueue(() =>
@@ -611,9 +687,15 @@ namespace Win115.ViewModels
                     var item = UploadItems.FirstOrDefault(x => x.PickCode == _uploadingPk);
                     if (item is not null)
                     {
-                        item.Progress = args.TransferredBytes * 1.0f / args.TotalBytes;
+                        item.Progress = p;
                     }
                 });
+                var col = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
+                var find = col.Query().Where(x => x.PickCode == _uploadingPk).SingleOrDefault();
+                if (find is not null)
+                {
+                    find.Progress = p;
+                }
             }
         }
 

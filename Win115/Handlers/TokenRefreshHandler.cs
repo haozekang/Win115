@@ -40,6 +40,7 @@ namespace Win115.Handlers
                     }); 
                     return new HttpResponseMessage(HttpStatusCode.Unauthorized);
                 }
+                accessToken = _user.AccessToken;
             }
             if (request.Headers.Any(h => h.Key == "Authorization"))
             {
@@ -62,7 +63,6 @@ namespace Win115.Handlers
             {
                 response = new HttpResponseMessage(HttpStatusCode.Unauthorized);
             }
-
             // 3. 检查是否返回401未授权
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -72,12 +72,12 @@ namespace Win115.Handlers
                 if (refreshed)
                 {
                     // 5. 刷新成功，重新发送原请求
-                    var newAccessToken = _user.AccessToken;
+                    accessToken = _user.AccessToken;
                     if (request.Headers.Any(h => h.Key == "Authorization"))
                     {
                         request.Headers.Remove("Authorization");
                     }
-                    request.Headers.Add("Authorization", $"Bearer {newAccessToken}");
+                    request.Headers.Add("Authorization", $"Bearer {accessToken}");
 
                     // 克隆请求并重新发送（原请求可能已被消费）
                     response = await base.SendAsync(request, cancellationToken);
@@ -167,6 +167,10 @@ namespace Win115.Handlers
         public async Task SaveTokensAsync(string accessToken, long expiresAt, string refreshToken)
         {
             var _db = App.Resolve<LiteDatabase>();
+            var _user = App.Resolve<UserInfoModel>();
+            _user.AccessToken = accessToken;
+            _user.ExpiresIn = DateTime.Now.AddSeconds(expiresAt);
+            _user.RefreshToken = refreshToken;
             var col = _db.GetCollection<TokenEntity>(CollectionResource.Tokens);
             var find = col.Query().OrderByDescending(x => x.Id).FirstOrDefault();
             if (find is null)

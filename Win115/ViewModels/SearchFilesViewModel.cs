@@ -40,9 +40,6 @@ namespace Win115.ViewModels
         public partial bool IsBusy { get; set; } = false;
 
         [ObservableProperty]
-        public partial long Offset { get; set; } = 0;
-
-        [ObservableProperty]
         public partial int Total { get; set; } = 0;
 
         [ObservableProperty]
@@ -81,6 +78,20 @@ namespace Win115.ViewModels
             _downloadListViewModel = downloadListViewModel;
             FileItems = new();
             SelectedFileItems = new();
+        }
+
+        [RelayCommand]
+        public async Task ClearData()
+        {
+            App.DispatcherQueue?.TryEnqueue(() =>
+            {
+                HasSelectedItems = false;
+                IsCheckAll = false;
+                SelectedFileItems.Clear();
+                FileItems.Clear();
+                Total = 0;
+                IsBusy = false;
+            });
         }
 
         /// <summary>

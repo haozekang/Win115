@@ -13,6 +13,9 @@ namespace Win115.Models
     public partial class UploadItemModel : ObservableObject
     {
         [ObservableProperty]
+        public partial int? TaskId { get; set; } = 0;
+
+        [ObservableProperty]
         public partial string? FileId { get; set; } = string.Empty;
 
         [ObservableProperty]

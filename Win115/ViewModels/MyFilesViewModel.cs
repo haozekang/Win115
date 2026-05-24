@@ -6,6 +6,7 @@ using CommunityToolkit.WinUI.Collections;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using Newtonsoft.Json;
 using Org.BouncyCastle.Asn1.X509;
 using RestSharp;
@@ -27,6 +28,7 @@ using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Win115.ViewModels
 {
@@ -123,6 +125,178 @@ namespace Win115.ViewModels
             _downloadListViewModel = downloadListViewModel;
             FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(-1, SortDirection, SortField));
             SelectedFileItems = new();
+        }
+
+        /// <summary>
+        /// 登出后，清理
+        /// </summary>
+        [RelayCommand]
+        public async Task ClearData()
+        {
+            App.DispatcherQueue?.TryEnqueue(() =>
+            {
+                PathItems = new()
+                {
+                    new SelectOptionItem(-1, "文件")
+                };
+                SelectedFileItems.Clear();
+                FileItems.Clear();
+                HasSelectedItems = false;
+                IsCheckAll = false;
+            });
+        }
+
+        /// <summary>
+        /// 显示文件/文件夹详情
+        /// </summary>
+        [RelayCommand]
+        public async Task ShowDetail()
+        {
+            if (!User.IsLogin)
+            {
+                return;
+            }
+            if (SelectedFileItems.Count > 1)
+            {
+                return;
+            }
+            var item = SelectedFileItems.First();
+            var req = new RestRequest(ApiResource.OpenFolderGetInfo);
+            req.AddQueryParameter("file_id", item.Id);
+            var res = await App.ProApiClient.GetAsync(req);
+            if (!res.IsSuccessful || res.Content.IsBlank())
+            {
+                return;
+            }
+            var state = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+            if (state is null || !state.State)
+            {
+                return;
+            }
+            OpenFolderGetInfoDTO? info = null;
+            try
+            {
+                var dto = JsonConvert.DeserializeObject<ProResponseDTO<OpenFolderGetInfoDTO?>>(res.Content);
+                info = dto?.Data;
+            }
+            catch(Exception e)
+            {
+                await LogHelper.Error(e);
+            }
+            if (info is null)
+            {
+                await App.ShowMessageBar("详情获取失败！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                return;
+            }
+            var content = new StackPanel() 
+            {
+                Orientation = Orientation.Vertical,
+                Spacing = 8,
+            };
+            AddLabelAndTextToContent(content, "名称：", info.FileName);
+            AddLabelAndTextToContent(content, "类型：", info.FileCategory == "1" ? "文件" : "文件夹");
+            AddLabelAndTextToContent(content, "大小：", info.Size);
+            if (info.Sha1.IsNotBlank())
+            {
+                AddLabelAndTextToContent(content, "SHA1：", info.Sha1);
+            }
+            AddLabelAndTextToContent(content, "包含：", $"{info.Count}个文件，{info.FolderCount}个文件夹");
+            if (info.PlayLong is not null && info.PlayLong > 0)
+            {
+                AddLabelAndTimeLongToContent(content, "音视频时长：", info.PlayLong);
+            }
+            if (info.Ptime.IsNotBlank() && info.Ptime.IsNumber())
+            {
+                AddLabelAndTimeToContent(content, "创建时间：", info.Ptime.ToLong());
+            }
+            if (info.Utime.IsNotBlank() && info.Utime.IsNumber())
+            {
+                AddLabelAndTimeToContent(content, "修改时间：", info.Utime.ToLong());
+            }
+            if (info.OpenTime is not null && info.OpenTime > 0)
+            {
+                AddLabelAndTimeToContent(content, "上次打开时间：", info.OpenTime);
+            }
+            if (info.Paths is not null && info.Paths.Length > 0)
+            {
+                AddLabelAndTextToContent(content, "位置：", string.Join(" / ", info.Paths.Select(p => p.FileName)));
+            }
+            ContentDialog dialog = new ContentDialog();
+            dialog.XamlRoot = App.XamlRoot;
+            dialog.Title = $"详情";
+            dialog.Content = content;
+            dialog.PrimaryButtonText = "关闭";
+            dialog.DefaultButton = ContentDialogButton.Primary;
+            await dialog.ShowAsync();
+        }
+
+        private void AddLabelAndTextToContent(StackPanel content, string title, string? text)
+        {
+            if (text.IsBlank())
+            {
+                return;
+            }
+            var txt = new TextBlock() 
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+            };
+            txt.Inlines.Add(new Run() 
+            {
+                Text = title,
+                FontWeight = FontWeights.Bold,
+            });
+            txt.Inlines.Add(new Run() 
+            {
+                Text = text,
+            });
+            content.Children.Add(txt);
+        }
+
+        private void AddLabelAndTimeToContent(StackPanel content, string title, long? _long)
+        {
+            if (_long is null)
+            {
+                return;
+            }
+            var txt = new TextBlock()
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+            };
+            txt.Inlines.Add(new Run()
+            {
+                Text = title,
+                FontWeight = FontWeights.Bold,
+            });
+            txt.Inlines.Add(new Run()
+            {
+                Text = _long.Value.TimeStampToDateTime()?.ToString("yyyy-MM-dd HH:mm:ss"),
+            });
+            content.Children.Add(txt);
+        }
+
+        private void AddLabelAndTimeLongToContent(StackPanel content, string title, long? _long)
+        {
+            if (_long is null)
+            {
+                return;
+            }
+            var txt = new TextBlock()
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+            };
+            txt.Inlines.Add(new Run()
+            {
+                Text = title,
+                FontWeight = FontWeights.Bold,
+            });
+            txt.Inlines.Add(new Run()
+            {
+                Text = StringHelper.FormatTimeSpan(TimeSpan.FromSeconds((double)_long), 3),
+            });
+            content.Children.Add(txt);
         }
 
         /// <summary>

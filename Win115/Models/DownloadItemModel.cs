@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.WinUI;
 using Downloader;
 using LiteDB;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
@@ -34,7 +36,9 @@ namespace Win115.Models
         public string? SizeText => Size > 0 ? StringHelper.FormatFileSize(Size) : "-";
 
         [ObservableProperty]
-        public partial string? Progress { get; set; } = string.Empty;
+        [NotifyPropertyChangedFor(nameof(ProgressText))]
+        public partial double? Progress { get; set; } = 0;
+        public string? ProgressText => Progress.HasValue ? $"{Progress:P}" : "-";
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(SpeedText))]
@@ -52,7 +56,27 @@ namespace Win115.Models
         public partial string? PickCode { get; set; } = string.Empty;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(StateText))]
+        [NotifyPropertyChangedFor(nameof(ShowPauseButton))]
+        [NotifyPropertyChangedFor(nameof(ShowStartButton))]
+        [NotifyPropertyChangedFor(nameof(ShowRestartButton))]
         public partial DownloadTaskStateEnum State { get; set; } = DownloadTaskStateEnum.Canceled;
+        public string? StateText => State switch 
+        {
+            DownloadTaskStateEnum.Paused => "暂停",
+            DownloadTaskStateEnum.Queued => "队列中",
+            DownloadTaskStateEnum.Downloading => "下载中",
+            DownloadTaskStateEnum.Completed => "完成",
+            DownloadTaskStateEnum.Failed => "失败",
+            DownloadTaskStateEnum.Canceled => "已取消",
+            _ => "-",
+        };
+
+        public Visibility ShowPauseButton => State == DownloadTaskStateEnum.Downloading || State == DownloadTaskStateEnum.Queued ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility ShowStartButton => State == DownloadTaskStateEnum.Paused ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility ShowRestartButton => State == DownloadTaskStateEnum.Failed || State == DownloadTaskStateEnum.Canceled ? Visibility.Visible : Visibility.Collapsed;
 
         [ObservableProperty]
         public partial bool ShowDeleteTip { get; set; } = false;
@@ -75,6 +99,31 @@ namespace Win115.Models
                     await LogHelper.Error(ex);
                 }
             }
+        }
+
+        [RelayCommand]
+        private async Task Pause()
+        {
+            if (State != DownloadTaskStateEnum.Downloading)
+            {
+                return;
+            }
+            State = DownloadTaskStateEnum.Paused;
+        }
+
+        [RelayCommand]
+        private async Task Start()
+        {
+            if (State != DownloadTaskStateEnum.Paused)
+            {
+                return;
+            }
+            State = DownloadTaskStateEnum.Queued;
+        }
+
+        [RelayCommand]
+        private async Task Restart()
+        {
         }
 
         [RelayCommand]

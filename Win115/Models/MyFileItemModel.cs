@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Org.BouncyCastle.Tsp;
@@ -133,6 +134,8 @@ namespace Win115.Models
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(FileTypeText))]
         [NotifyPropertyChangedFor(nameof(FileTypeIcon))]
+        [NotifyPropertyChangedFor(nameof(IsOnlyDirVisibility))]
+        [NotifyPropertyChangedFor(nameof(IsOnlyFileVisibility))]
         public partial string? FileType { get; set; } = string.Empty;
 
         public string FileTypeText => FileType switch
@@ -141,6 +144,9 @@ namespace Win115.Models
             "1" => "文件",
             _ => "-"
         };
+
+        public Visibility IsOnlyDirVisibility => FileType == "0" ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IsOnlyFileVisibility => FileType == "1" ? Visibility.Visible : Visibility.Collapsed;
 
         public string FileTypeIcon => FileType switch 
         {

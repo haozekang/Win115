@@ -28,17 +28,20 @@
                 Width="45"
                 Command="{x:Bind viewModel.ClearFinishCommand}"
                 Icon="{ui:FontIcon Glyph='&#xEA99;'}"
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
                 ToolTipService.ToolTip="清除已完成" />
-            <AppBarButton
+            <!--<AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.PauseAllCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE769;'}"
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
                 ToolTipService.ToolTip="全部暂停" />
             <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.StartAllCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE768;'}"
-                ToolTipService.ToolTip="全部继续" />
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
+                ToolTipService.ToolTip="全部继续" />-->
         </CommandBar>
         <ListView
             Grid.Row="1"

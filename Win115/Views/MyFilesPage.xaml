@@ -19,6 +19,7 @@
             <MenuFlyoutItem
                 Click="menu_open_Click"
                 Icon="{ui:FontIcon Glyph='&#xE838;'}"
+                Tag="open"
                 Text="打开" />
             <MenuFlyoutItem
                 Command="{x:Bind viewModel.RefreshFilesCommand}"
@@ -29,22 +30,34 @@
                 Command="{x:Bind viewModel.DownloadRightMenuCommand}"
                 CommandParameter="{Binding .}"
                 Icon="{ui:FontIcon Glyph='&#xE896;'}"
+                Tag="download"
                 Text="下载" />
             <MenuFlyoutItem
                 Command="{x:Bind viewModel.DownloadOtherDirRightMenuCommand}"
+                CommandParameter="{Binding .}"
                 Icon="{ui:FontIcon Glyph='&#xE896;'}"
+                Tag="downloadTo"
                 Text="下载（另存为）" />
             <MenuFlyoutItem
                 Command="{x:Bind viewModel.UploadFileCommand}"
+                CommandParameter="{Binding .}"
                 Icon="{ui:FontIcon Glyph='&#xE898;'}"
-                Text="上传文件" />
+                Tag="upload"
+                Text="上传文件"
+                Visibility="{Binding IsOnlyDirVisibility}" />
             <MenuFlyoutSeparator />
             <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8C8;'}" Text="复制到" />
             <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8DE;'}" Text="移动到" />
             <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8AC;'}" Text="重命名" />
             <MenuFlyoutSeparator />-->
-            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE946;'}" Text="详情" />-->
             <MenuFlyoutItem
+                Command="{x:Bind viewModel.ShowDetailCommand}"
+                CommandParameter="{Binding .}"
+                Icon="{ui:FontIcon Glyph='&#xE946;'}"
+                Tag="detail"
+                Text="详情" />
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.DeleteSelectedCommand}"
                 Foreground="Red"
                 Icon="{ui:FontIcon Glyph='&#xE74D;'}"
                 Text="删除" />

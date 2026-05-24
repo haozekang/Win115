@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -46,6 +47,7 @@ namespace Win115.Views
 
             viewModel = App.Resolve<MyFilesViewModel>();
             _user = App.Resolve<UserInfoModel>();
+            App.UpdatePathBar();
         }
 
         private async void menu_open_Click(object sender, RoutedEventArgs e)
@@ -64,9 +66,9 @@ namespace Win115.Views
             {
                 return;
             }
+            MyFileItemModel? item = null;
             if (e.OriginalSource is FrameworkElement element)
             {
-                MyFileItemModel? item = null;
                 if (element.DataContext is MyFileItemModel)
                 {
                     item = (MyFileItemModel)element.DataContext;
@@ -75,18 +77,24 @@ namespace Win115.Views
                 {
                     item = viewModel.FileItems.FirstOrDefault(x => x.Id == id);
                 }
-
-                if (item is not null)
+            }
+            if (item == null && e.OriginalSource is MenuFlyoutItem menu)
+            {
+                if (menu.CommandParameter is MyFileItemModel)
                 {
-                    // 文件夹，执行进入文件夹命令
-                    if (item.FileType == "0")
-                    {
-                        await viewModel.EnterFolderCommand.ExecuteAsync(item);
-                    }
-                    else
-                    {
+                    item = (MyFileItemModel)menu.CommandParameter;
+                }
+            }
 
-                    }
+            if (item is not null)
+            {
+                // 文件夹，执行进入文件夹命令
+                if (item.FileType == "0")
+                {
+                    await viewModel.EnterFolderCommand.ExecuteAsync(item);
+                }
+                else
+                {
                 }
             }
         }
@@ -403,12 +411,44 @@ namespace Win115.Views
 
         private void item_menu_Opening(object sender, object e)
         {
-            if (sender is MenuFlyout flyout && flyout.Target is ListViewItem element)
+            if (sender is MenuFlyout flyout && flyout.Target is ListViewItem element && element.Content is MyFileItemModel file)
             {
+                if (lv.SelectedItems.Count <= 1)
+                {
+                    lv.SelectedItems.Clear();
+                    lv.SelectedItems.Add(element.Content);
+                }
                 foreach (var menu in flyout.Items)
                 {
                     if (menu is MenuFlyoutItem item)
                     {
+                        item.Visibility = Visibility.Visible;
+                        if (lv.SelectedItems.Count > 1)
+                        {
+                            if ((item.Tag as string) == "detail")
+                            {
+                                item.Visibility = Visibility.Collapsed;
+                            }
+                        }
+                        // 暂不支持目录下载
+                        if (file.FileType == "0")
+                        {
+                            if ((item.Tag as string) == "downloadTo")
+                            {
+                                item.Visibility = Visibility.Collapsed;
+                            }
+                            else if ((item.Tag as string) == "download")
+                            {
+                                item.Visibility = Visibility.Collapsed;
+                            }
+                        }
+                        else if(file.FileType == "1")
+                        {
+                            if ((item.Tag as string) == "open")
+                            {
+                                item.Visibility = Visibility.Collapsed;
+                            }
+                        }
                         item.CommandParameter = element.Content;
                     }
                 }

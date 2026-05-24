@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml.Documents;
+using Org.BouncyCastle.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +38,29 @@ namespace Win115.Helpers
             return unitIndex == 0
                 ? $"{bytes} B"
                 : $"{size:0.##} {units[unitIndex]}";
+        }
+
+        public static string FormatTimeSpan(TimeSpan? time, int maxUnits = 2)
+        {
+            if (time is null || time == TimeSpan.Zero)
+            {
+                return string.Empty;
+            }
+            var abs = time.Value.Duration();
+            var parts = new List<string>(4);
+
+            if (abs.Days > 0) parts.Add($"{abs.Days}天");
+            if (abs.Hours > 0) parts.Add($"{abs.Hours}小时");
+            if (abs.Minutes > 0) parts.Add($"{abs.Minutes}分");
+            if (abs.Seconds > 0) parts.Add($"{abs.Seconds}秒");
+
+            if (parts.Count == 0)
+            {
+                return string.Empty;
+            }
+            if (parts.Count > maxUnits) parts = parts.Take(maxUnits).ToList();
+
+            return string.Concat(parts);
         }
 
         public static string FormatDownloadSpeed(long? bytes)

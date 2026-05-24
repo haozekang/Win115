@@ -16,6 +16,7 @@ using Win115.Models;
 using Win115.Properties;
 using Win115.ViewModels;
 using Win115.Views;
+using Windows.System;
 using WinRT.Interop;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -49,14 +50,13 @@ namespace Win115
                 presenter.SetBorderAndTitleBar(true, false);
             }
             viewModel.SelectedItem = viewModel.MenuItems?.FirstOrDefault();
-            AppWindow.SetIcon("/Assets/favicon.ico");
+            appWindow.SetIcon("Assets/favicon.ico");
 
             _ = LoadSystemConfigAsync();
         }
 
         private async Task LoadSystemConfigAsync()
         {
-            var _user = App.Resolve<UserInfoModel>();
             var _system = App.Resolve<SystemInfoModel>();
             var _db = App.Resolve<LiteDatabase>();
             if (_db.CollectionExists(CollectionResource.System) != true)
@@ -67,28 +67,11 @@ namespace Win115
             var downloadDirPath = col.Query().Where(x => x.Type == SystemConfigTypeResource.DownloadDirPath).SingleOrDefault();
             if (downloadDirPath is not null)
             {
-                _system.DownloadDirPath = downloadDirPath.Value;
-            }
-
-            // 载入历史下载记录
-            var downloadTaskCol = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
-            var tasks = downloadTaskCol.FindAll();
-            var downloadListViewModel = App.Resolve<DownloadListViewModel>();
-            foreach (var task in tasks)
-            {
-                downloadListViewModel.DownloadItems.Add(new DownloadItemModel 
+                await DispatcherQueue.EnqueueAsync(() => 
                 {
-                    Name = task.Name,
-                    Progress = task.Progress,
-                    State = task.State.HasValue ? task.State.Value == DownloadTaskStateEnum.Queued ? DownloadTaskStateEnum.Paused : task.State.Value : DownloadTaskStateEnum.Canceled,
-                    SavePath = task.SavePath,
-                    Size = task.Size,
-                    PickCode = task.PickCode,
-                    Url = task.Url
+                    _system.DownloadDirPath = downloadDirPath.Value;
                 });
             }
-
-            var uploadListViewModel = App.Resolve<UploadListViewModel>();
         }
 
         private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
@@ -169,23 +152,25 @@ namespace Win115
             }
         }
 
-        public Task ShowMessageBar(string msg, string title, InfoBarSeverity severity = InfoBarSeverity.Informational, bool showClose = true, TimeSpan? autoClose = null)
+        public async Task ShowMessageBar(string msg, string title, InfoBarSeverity severity = InfoBarSeverity.Informational, bool showClose = true, TimeSpan? autoClose = null)
         {
-            messageBar.Message = msg;
-            messageBar.Title = title;
-            messageBar.Severity = severity;
-            messageBar.IsClosable = showClose;
-            messageBar.IsOpen = true;
-            messageBar.Tag = null;
-            if (autoClose is not null)
+            DispatcherQueue.TryEnqueue(() => 
             {
-                messageBar.Tag = Guid.NewGuid();
-                DispatcherTimer timer = new DispatcherTimer();
-                timer.Interval = autoClose.Value;
-                timer.Tick += messageBar_Tick;
-                timer.Start();
-            }
-            return Task.CompletedTask;
+                messageBar.Message = msg;
+                messageBar.Title = title;
+                messageBar.Severity = severity;
+                messageBar.IsClosable = showClose;
+                messageBar.IsOpen = true;
+                messageBar.Tag = null;
+                if (autoClose is not null)
+                {
+                    messageBar.Tag = Guid.NewGuid();
+                    DispatcherTimer timer = new DispatcherTimer();
+                    timer.Interval = autoClose.Value;
+                    timer.Tick += messageBar_Tick;
+                    timer.Start();
+                }
+            });
         }
 
         public async Task JumpPage(MenuKeys? menu)
@@ -214,10 +199,12 @@ namespace Win115
             });
         }
 
-        public Task SetFace(string url)
+        public async Task SetFace(string url)
         {
-            img_face.Source = new BitmapImage(new Uri(url));
-            return Task.CompletedTask;
+            DispatcherQueue.TryEnqueue(() => 
+            {
+                img_face.Source = new BitmapImage(new Uri(url));
+            });
         }
 
         private void messageBar_Tick(object? sender, object e)
@@ -233,9 +220,15 @@ namespace Win115
 
         private async void NavViewSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
         {
+            if (viewModel is null || viewModel.User.IsLogin != true)
+            {
+                await App.ShowMessageBar($"请登录后再使用！", "警告", severity: InfoBarSeverity.Warning, autoClose: TimeSpan.FromSeconds(3));
+                return;
+            }
             var searchValue = NavViewSearchBox.Text.StringTrim();
             if (searchValue.IsBlank())
             {
+                await App.ShowMessageBar($"请输入你要查询的关键字！", "警告", severity: InfoBarSeverity.Warning, autoClose: TimeSpan.FromSeconds(4));
                 return;
             }
             var vm = App.Resolve<SearchFilesViewModel>();

@@ -110,6 +110,11 @@
 	  </Compile>
 	</ItemGroup>
 	<ItemGroup>
+	  <Content Update="Assets\favicon.ico">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+	<ItemGroup>
 	  <EmbeddedResource Update="Properties\ApiResource.resx">
 	    <Generator>ResXFileCodeGenerator</Generator>
 	    <LastGenOutput>ApiResource.Designer.cs</LastGenOutput>
