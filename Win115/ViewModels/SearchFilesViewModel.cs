@@ -1,6 +1,7 @@
 using Autofac;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -78,20 +79,29 @@ namespace Win115.ViewModels
             _downloadListViewModel = downloadListViewModel;
             FileItems = new();
             SelectedFileItems = new();
+
+            Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
+            {
+                switch (msgType.Value)
+                {
+                    case WeakMessengerTypes.SignOut:
+                        ClearData();
+                        break;
+                }
+            });
         }
 
-        [RelayCommand]
-        public async Task ClearData()
+        /// <summary>
+        /// 登出后，清理
+        /// </summary>
+        public async void ClearData()
         {
-            App.DispatcherQueue?.TryEnqueue(() =>
-            {
-                HasSelectedItems = false;
-                IsCheckAll = false;
-                SelectedFileItems.Clear();
-                FileItems.Clear();
-                Total = 0;
-                IsBusy = false;
-            });
+            HasSelectedItems = false;
+            IsCheckAll = false;
+            SelectedFileItems.Clear();
+            FileItems.Clear();
+            Total = 0;
+            IsBusy = false;
         }
 
         /// <summary>

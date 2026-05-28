@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI.Collections;
 using LiteDB;
 using Microsoft.UI.Xaml.Controls;
@@ -13,6 +14,7 @@ using System.Threading.Tasks;
 using System.Xml.XPath;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
+using Win115.Enums;
 using Win115.Models;
 using Win115.Properties;
 
@@ -47,22 +49,28 @@ namespace Win115.ViewModels
             _db = db;
             FileItems = new IncrementalLoadingCollection<RbFileIncrementalSource, RbFileItemModel>(new RbFileIncrementalSource());
             SelectedFileItems = new();
+
+            Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
+            {
+                switch (msgType.Value)
+                {
+                    case WeakMessengerTypes.SignOut:
+                        ClearData();
+                        break;
+                }
+            });
         }
 
         /// <summary>
         /// 登出后，清理
         /// </summary>
-        [RelayCommand]
-        public async Task ClearData()
+        public void ClearData()
         {
-            App.DispatcherQueue?.TryEnqueue(() =>
-            {
-                SelectedFileItems.Clear();
-                FileItems.Clear();
-                HasSelectedItems = false;
-                IsCheckAll = false;
-                CanClearAll = false;
-            });
+            SelectedFileItems.Clear();
+            FileItems.Clear();
+            HasSelectedItems = false;
+            IsCheckAll = false;
+            CanClearAll = false;
         }
 
         [RelayCommand]

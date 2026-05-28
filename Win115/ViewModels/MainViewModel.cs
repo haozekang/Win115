@@ -1,6 +1,8 @@
 using Autofac;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using LiteDB;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Text;
@@ -340,20 +342,22 @@ namespace Win115.ViewModels
             // 清理视图
             try
             {
-                var filesView = App.Resolve<MyFilesViewModel>();
-                var backView = App.Resolve<BackStationViewModel>();
-                var cloudView = App.Resolve<CloudDownloadViewModel>();
-                var downView = App.Resolve<DownloadListViewModel>();
-                var upView = App.Resolve<UploadListViewModel>();
-                var searchView = App.Resolve<SearchFilesViewModel>();
-                var userView = App.Resolve<UserViewModel>();
-                await Task.WhenAll(filesView.ClearDataCommand.ExecuteAsync(null),
-                    backView.ClearDataCommand.ExecuteAsync(null),
-                    cloudView.ClearDataCommand.ExecuteAsync(null),
-                    downView.ClearDataCommand.ExecuteAsync(null),
-                    upView.ClearDataCommand.ExecuteAsync(null),
-                    searchView.ClearDataCommand.ExecuteAsync(null),
-                    userView.ClearDataCommand.ExecuteAsync(null));
+                User.IsLogin = false;
+                User.UserId = string.Empty;
+                User.UserName = string.Empty;
+                User.FaceS = string.Empty;
+                User.FaceM = string.Empty;
+                User.FaceL = string.Empty;
+                User.AllTotalSize = 0;
+                User.AllTotalFormat = string.Empty;
+                User.AllRemainSize = 0;
+                User.AllRemainFormat = string.Empty;
+                User.AllUseSize = 0;
+                User.AllUseFormat = string.Empty;
+                User.VipLevelName = string.Empty;
+                User.VipExpire = null;
+
+                WeakReferenceMessenger.Default.Send(new ValueChangedMessage<WeakMessengerTypes>(WeakMessengerTypes.SignOut), nameof(MainViewModel));
             }
             catch(Exception ex)
             {

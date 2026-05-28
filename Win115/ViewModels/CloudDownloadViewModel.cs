@@ -1,10 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI.Collections;
 using LiteDB;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Threading.Tasks;
+using Win115.Enums;
 using Win115.Models;
 
 namespace Win115.ViewModels
@@ -24,18 +26,24 @@ namespace Win115.ViewModels
             User = user;
             _db = db;
             TaskItems = new IncrementalLoadingCollection<CloudTaskIncrementalSource, CloudTaskItemModel>(new CloudTaskIncrementalSource(), 30);
+
+            Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
+            {
+                switch (msgType.Value)
+                {
+                    case WeakMessengerTypes.SignOut:
+                        ClearData();
+                        break;
+                }
+            });
         }
 
         /// <summary>
         /// 登出后，清理
         /// </summary>
-        [RelayCommand]
-        public async Task ClearData()
+        public void ClearData()
         {
-            App.DispatcherQueue?.TryEnqueue(() =>
-            {
-                TaskItems.Clear();
-            });
+            TaskItems.Clear();
         }
 
         [RelayCommand]

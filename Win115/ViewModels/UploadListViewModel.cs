@@ -4,6 +4,7 @@ using Aliyun.OSS.Model;
 using Aliyun.OSS.Util;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI;
 using LiteDB;
 using Newtonsoft.Json;
@@ -58,13 +59,22 @@ namespace Win115.ViewModels
 
             Task.Factory.StartNew(ReadTask);
             Task.Factory.StartNew(CheckTaskState);
+
+            Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
+            {
+                switch (msgType.Value)
+                {
+                    case WeakMessengerTypes.SignOut:
+                        ClearData();
+                        break;
+                }
+            });
         }
 
         /// <summary>
         /// 登出后，清理
         /// </summary>
-        [RelayCommand]
-        public async Task ClearData()
+        public async void ClearData()
         {
             try
             {
@@ -110,10 +120,7 @@ namespace Win115.ViewModels
                     find.State = UploadTaskStateEnum.Queued;
                     col.Update(find);
                 }
-                App.DispatcherQueue?.TryEnqueue(() => 
-                {
-                    UploadItems.Clear();
-                });
+                UploadItems.Clear();
             }
             finally
             {

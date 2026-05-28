@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
+using Win115.Enums;
 using Win115.Models;
 
 namespace Win115.ViewModels
@@ -19,28 +21,24 @@ namespace Win115.ViewModels
         public UserViewModel(UserInfoModel User) 
         {
             this.User = User;
+
+            Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
+            {
+                switch (msgType.Value)
+                {
+                    case WeakMessengerTypes.SignOut:
+                        ClearData();
+                        break;
+                }
+            });
         }
 
-        [RelayCommand]
-        public async Task ClearData()
+        /// <summary>
+        /// 登出后，清理
+        /// </summary>
+        public void ClearData()
         {
-            App.DispatcherQueue?.TryEnqueue(() => 
-            {
-                User.IsLogin = false;
-                User.UserId = string.Empty;
-                User.UserName = string.Empty;
-                User.FaceS = string.Empty;
-                User.FaceM = string.Empty;
-                User.FaceL = string.Empty;
-                User.AllTotalSize = 0;
-                User.AllTotalFormat = string.Empty;
-                User.AllRemainSize = 0;
-                User.AllRemainFormat = string.Empty;
-                User.AllUseSize = 0;
-                User.AllUseFormat = string.Empty;
-                User.VipLevelName = string.Empty;
-                User.VipExpire = null;
-            });
+            App.JumpPage(MenuKeys.MyFiles);
         }
     }
 }

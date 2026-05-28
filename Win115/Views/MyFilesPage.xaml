@@ -46,10 +46,20 @@
                 Text="上传文件"
                 Visibility="{Binding IsOnlyDirVisibility}" />
             <MenuFlyoutSeparator />
-            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8C8;'}" Text="复制到" />
-            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8DE;'}" Text="移动到" />
-            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8AC;'}" Text="重命名" />
-            <MenuFlyoutSeparator />-->
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.CopyToCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE8C8;'}"
+                Text="复制到" />
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.MoveToCommand}"
+                Icon="{ui:FontIcon Glyph='&#xE8DE;'}"
+                Text="移动到" />
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.UpdateFileNameCommand}"
+                CommandParameter="{Binding .}"
+                Icon="{ui:FontIcon Glyph='&#xE8AC;'}"
+                Text="重命名" />
+            <MenuFlyoutSeparator />
             <MenuFlyoutItem
                 Command="{x:Bind viewModel.ShowDetailCommand}"
                 CommandParameter="{Binding .}"
@@ -323,7 +333,7 @@
                 Icon="Download"
                 IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
                 ToolTipService.ToolTip="下载" />
-            <!--<AppBarButton
+            <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.CopyToCommand}"
                 Icon="Copy"
@@ -334,7 +344,7 @@
                 Command="{x:Bind viewModel.MoveToCommand}"
                 Icon="MoveToFolder"
                 IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"
-                ToolTipService.ToolTip="移动到" />-->
+                ToolTipService.ToolTip="移动到" />
             <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.DeleteSelectedCommand}"

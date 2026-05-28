@@ -1,6 +1,7 @@
 using Autofac;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI;
 using CommunityToolkit.WinUI.Collections;
 using Microsoft.UI.Text;
@@ -28,6 +29,7 @@ using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using static Aliyun.OSS.Model.LiveChannelStat;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Win115.ViewModels
@@ -125,25 +127,31 @@ namespace Win115.ViewModels
             _downloadListViewModel = downloadListViewModel;
             FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(-1, SortDirection, SortField));
             SelectedFileItems = new();
+
+            Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
+            {
+                switch (msgType.Value)
+                {
+                    case WeakMessengerTypes.SignOut:
+                        ClearData();
+                        break;
+                }
+            });
         }
 
         /// <summary>
         /// 登出后，清理
         /// </summary>
-        [RelayCommand]
-        public async Task ClearData()
+        public async void ClearData()
         {
-            App.DispatcherQueue?.TryEnqueue(() =>
+            PathItems = new()
             {
-                PathItems = new()
-                {
-                    new SelectOptionItem(-1, "文件")
-                };
-                SelectedFileItems.Clear();
-                FileItems.Clear();
-                HasSelectedItems = false;
-                IsCheckAll = false;
-            });
+                new SelectOptionItem(-1, "文件")
+            };
+            SelectedFileItems.Clear();
+            FileItems.Clear();
+            HasSelectedItems = false;
+            IsCheckAll = false;
         }
 
         /// <summary>
@@ -179,7 +187,7 @@ namespace Win115.ViewModels
                 var dto = JsonConvert.DeserializeObject<ProResponseDTO<OpenFolderGetInfoDTO?>>(res.Content);
                 info = dto?.Data;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 await LogHelper.Error(e);
             }
@@ -188,7 +196,7 @@ namespace Win115.ViewModels
                 await App.ShowMessageBar("详情获取失败！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
                 return;
             }
-            var content = new StackPanel() 
+            var content = new StackPanel()
             {
                 Orientation = Orientation.Vertical,
                 Spacing = 8,
@@ -236,17 +244,17 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            var txt = new TextBlock() 
+            var txt = new TextBlock()
             {
                 VerticalAlignment = VerticalAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
             };
-            txt.Inlines.Add(new Run() 
+            txt.Inlines.Add(new Run()
             {
                 Text = title,
                 FontWeight = FontWeights.Bold,
             });
-            txt.Inlines.Add(new Run() 
+            txt.Inlines.Add(new Run()
             {
                 Text = text,
             });
@@ -441,7 +449,7 @@ namespace Win115.ViewModels
                 }
                 await RefreshFiles();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 await LogHelper.Error(ex);
             }
@@ -520,7 +528,7 @@ namespace Win115.ViewModels
                     await _downloadListViewModel.AddTask(s.PickCode!, s.Name!, s.Size, System.DownloadDirPath);
                 }
             }
-            else if(item is MyFileItemModel _item)
+            else if (item is MyFileItemModel _item)
             {
                 if (_item.FileType == "0")
                 {
@@ -572,7 +580,7 @@ namespace Win115.ViewModels
                     await _downloadListViewModel.AddTask(s.PickCode!, s.Name!, s.Size, folder.Path);
                 }
             }
-            else if(item is MyFileItemModel _item)
+            else if (item is MyFileItemModel _item)
             {
                 if (_item.FileType == "0")
                 {
@@ -598,6 +606,68 @@ namespace Win115.ViewModels
             {
                 return;
             }
+            if (SelectedFileItems.IsBlank())
+            {
+                return;
+            }
+            var title = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+            };
+            title.Children.Add(new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 24,
+                FontWeight = FontWeights.Bold,
+                Text = "选择复制到的目录",
+                Margin = new Thickness(10, 0, 0, 0),
+            });
+            using var scope = App.CreateScope();
+            var vm = scope.Resolve<SelectSavePathViewModel>();
+            SelectSavePathContentDialog dialog = new SelectSavePathContentDialog(vm);
+            dialog.XamlRoot = App.XamlRoot;
+            dialog.Title = title;
+            dialog.PrimaryButtonText = "确定";
+            dialog.SecondaryButtonText = "取消";
+            dialog.DefaultButton = ContentDialogButton.Primary;
+            var result = await dialog.ShowAsync();
+            if (result != ContentDialogResult.Primary)
+            {
+                return;
+            }
+            if (vm.SavePathId is null || vm.SavePathId < 0)
+            {
+                return;
+            }
+            try
+            {
+                var cid = vm.SavePathId;
+                var ids = string.Join(",", SelectedFileItems.Select(x => x.Id).ToList());
+                var req = new RestRequest(ApiResource.OpenUfileCopy);
+                req.AddOrUpdateParameter("file_id", ids);
+                req.AddOrUpdateParameter("pid", $"{cid}");
+                req.AlwaysMultipartFormData = true;
+                var res = await App.ProApiClient.PostAsync(req);
+                if (!res.IsSuccessful || res.Content.IsBlank())
+                {
+                    return;
+                }
+                var dto = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+                if (dto is null || !dto.State)
+                {
+                    if (dto?.Message.IsNotBlank() == true)
+                    {
+                        _ = App.ShowMessageBar(dto?.Message!, "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(4));
+                    }
+                    return;
+                }
+                _ = App.ShowMessageBar("复制成功！", "成功", InfoBarSeverity.Success, autoClose: TimeSpan.FromSeconds(3));
+                await RefreshFiles();
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+            }
         }
 
         /// <summary>
@@ -609,6 +679,161 @@ namespace Win115.ViewModels
             if (!User.IsLogin)
             {
                 return;
+            }
+            if (SelectedFileItems.IsBlank())
+            {
+                return;
+            }
+            var title = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+            };
+            title.Children.Add(new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 24,
+                FontWeight = FontWeights.Bold,
+                Text = "选择移动到的目录",
+                Margin = new Thickness(10, 0, 0, 0),
+            });
+            using var scope = App.CreateScope();
+            var vm = scope.Resolve<SelectSavePathViewModel>();
+            SelectSavePathContentDialog dialog = new SelectSavePathContentDialog(vm);
+            dialog.XamlRoot = App.XamlRoot;
+            dialog.Title = title;
+            dialog.PrimaryButtonText = "确定";
+            dialog.SecondaryButtonText = "取消";
+            dialog.DefaultButton = ContentDialogButton.Primary;
+            var result = await dialog.ShowAsync();
+            if (result != ContentDialogResult.Primary)
+            {
+                return;
+            }
+            if (vm.SavePathId is null || vm.SavePathId < 0)
+            {
+                return;
+            }
+            try
+            {
+                var cid = vm.SavePathId;
+                var ids = string.Join(",", SelectedFileItems.Select(x => x.Id).ToList());
+                var req = new RestRequest(ApiResource.OpenUfileMove);
+                req.AddOrUpdateParameter("file_ids", ids);
+                req.AddOrUpdateParameter("to_cid", $"{cid}");
+                req.AlwaysMultipartFormData = true;
+                var res = await App.ProApiClient.PostAsync(req);
+                if (!res.IsSuccessful || res.Content.IsBlank())
+                {
+                    return;
+                }
+                var dto = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+                if (dto is null || !dto.State)
+                {
+                    if (dto?.Message.IsNotBlank() == true)
+                    {
+                        _ = App.ShowMessageBar(dto?.Message!, "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(4));
+                    }
+                    return;
+                }
+                _ = App.ShowMessageBar("移动成功！", "成功", InfoBarSeverity.Success, autoClose: TimeSpan.FromSeconds(3));
+                await RefreshFiles();
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+            }
+        }
+
+        /// <summary>
+        /// 重命名
+        /// </summary>
+        [RelayCommand]
+        public async Task UpdateFileName(object? item)
+        {
+            if (!User.IsLogin)
+            {
+                return;
+            }
+            if (item is not MyFileItemModel _item)
+            {
+                return;
+            }
+
+            var title = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+            };
+            title.Children.Add(new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 24,
+                FontWeight = FontWeights.Bold,
+                Text = "重命名",
+                Margin = new Thickness(10, 0, 0, 0),
+            });
+            var content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+            };
+            content.Children.Add(new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                Text = "名称：",
+                Margin = new Thickness(10, 0, 0, 0),
+            });
+            var txt_name = new TextBox
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                Text = _item.Name,
+                Width = 400,
+                Margin = new Thickness(5, 0, 0, 0),
+            };
+            content.Children.Add(txt_name);
+            txt_name.SelectAll();
+            using var scope = App.CreateScope();
+            var dialog = new ContentDialog();
+            dialog.XamlRoot = App.XamlRoot;
+            dialog.Title = title;
+            dialog.Content = content;
+            dialog.PrimaryButtonText = "确定";
+            dialog.SecondaryButtonText = "取消";
+            dialog.DefaultButton = ContentDialogButton.Primary;
+            var result = await dialog.ShowAsync();
+            if (result != ContentDialogResult.Primary)
+            {
+                return;
+            }
+            if (txt_name.Text.IsBlank())
+            {
+                _ = App.ShowMessageBar("文件(夹)名称不能为空！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(4));
+                return;
+            }
+            if (txt_name.Text.StringTrim().Equals(_item.Name.StringTrim()))
+            {
+                return;
+            }
+            try
+            {
+                var req = new RestRequest(ApiResource.OpenUfileUpdate);
+                req.AddOrUpdateParameter("file_id", _item.Id);
+                req.AddOrUpdateParameter("file_name", txt_name.Text.StringTrim());
+                req.AlwaysMultipartFormData = true;
+                var res = await App.ProApiClient.PostAsync(req);
+                if (!res.IsSuccessful || res.Content.IsBlank())
+                {
+                    return;
+                }
+                var dto = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+                if (dto is null || !dto.State)
+                {
+                    return;
+                }
+                _ = App.ShowMessageBar("重命名成功！", "成功", InfoBarSeverity.Success, autoClose: TimeSpan.FromSeconds(3));
+                await RefreshFiles();
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
             }
         }
 
