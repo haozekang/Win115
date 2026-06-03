@@ -405,6 +405,11 @@
                 SelectionChanged="iv_SelectionChanged"
                 SelectionMode="Multiple"
                 Visibility="{x:Bind viewModel.ViewAllVisibility, Mode=OneWay}">
+                <GridView.ItemContainerStyle>
+                    <Style BasedOn="{StaticResource DefaultGridViewItemStyle}" TargetType="GridViewItem">
+                        <Setter Property="ContextFlyout" Value="{StaticResource item_menu}" />
+                    </Style>
+                </GridView.ItemContainerStyle>
                 <GridView.ItemTemplate>
                     <DataTemplate x:DataType="m:MyFileItemModel">
                         <Grid

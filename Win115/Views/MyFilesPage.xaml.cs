@@ -1,3 +1,4 @@
+using ABI.System;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -411,46 +412,78 @@ namespace Win115.Views
 
         private void item_menu_Opening(object sender, object e)
         {
-            if (sender is MenuFlyout flyout && flyout.Target is ListViewItem element && element.Content is MyFileItemModel file)
+            MenuFlyout? flyout = null;
+            ContentControl? element = null;
+            MyFileItemModel? file = null;
+            if (sender is MenuFlyout)
             {
+                flyout = sender as MenuFlyout;
+            }
+            if (flyout is not null && flyout.Target is ContentControl)
+            {
+                element = flyout?.Target as ContentControl;
+            }
+            if (flyout is null || element is null)
+            {
+                return;
+            }
+            if (element is not null && element.Content is MyFileItemModel)
+            {
+                file = element.Content as MyFileItemModel;
                 if (lv.SelectedItems.Count <= 1)
                 {
                     lv.SelectedItems.Clear();
                     lv.SelectedItems.Add(element.Content);
                 }
-                foreach (var menu in flyout.Items)
+                if (iv.SelectedItems.Count <= 1)
                 {
-                    if (menu is MenuFlyoutItem item)
+                    iv.SelectedItems.Clear();
+                    iv.SelectedItems.Add(element.Content);
+                }
+            }
+            if (file is null)
+            {
+                return;
+            }
+            foreach (var menu in flyout.Items)
+            {
+                if (menu is MenuFlyoutItem item)
+                {
+                    item.Visibility = Visibility.Visible;
+                    if (viewModel?.IsListView == true && lv.SelectedItems.Count > 1)
                     {
-                        item.Visibility = Visibility.Visible;
-                        if (lv.SelectedItems.Count > 1)
+                        if ((item.Tag as string) == "detail")
                         {
-                            if ((item.Tag as string) == "detail")
-                            {
-                                item.Visibility = Visibility.Collapsed;
-                            }
+                            item.Visibility = Visibility.Collapsed;
                         }
-                        // 暂不支持目录下载
-                        if (file.FileType == "0")
-                        {
-                            if ((item.Tag as string) == "downloadTo")
-                            {
-                                item.Visibility = Visibility.Collapsed;
-                            }
-                            else if ((item.Tag as string) == "download")
-                            {
-                                item.Visibility = Visibility.Collapsed;
-                            }
-                        }
-                        else if(file.FileType == "1")
-                        {
-                            if ((item.Tag as string) == "open")
-                            {
-                                item.Visibility = Visibility.Collapsed;
-                            }
-                        }
-                        item.CommandParameter = element.Content;
                     }
+                    if (viewModel?.IsViewAllView == true && iv.SelectedItems.Count > 1)
+                    {
+                        if ((item.Tag as string) == "detail")
+                        {
+                            item.Visibility = Visibility.Collapsed;
+                        }
+                    }
+                    // 暂不支持目录下载
+                    if (file.FileType == "0")
+                    {
+                        if ((item.Tag as string) == "downloadTo")
+                        {
+                            item.Visibility = Visibility.Collapsed;
+                        }
+                        else if ((item.Tag as string) == "download")
+                        {
+                            item.Visibility = Visibility.Collapsed;
+                        }
+                    }
+                    else if (file.FileType == "1")
+                    {
+                        if ((item.Tag as string) == "open")
+                        {
+                            item.Visibility = Visibility.Collapsed;
+                        }
+                    }
+                    item.CommandParameter = element?.Content;
                 }
             }
         }
