@@ -542,7 +542,14 @@ namespace Win115.ViewModels
                         }
                     }
                     callbackMeta.AddHeader(HttpHeaders.CallbackVar, callbackVariableHeaderBuilder.Build());
-
+                    if (endpoint.IsBlank() || bucket.IsBlank() || objectId.IsBlank()||accessKeyId.IsBlank()|| accessKeySecret.IsBlank())
+                    {
+                        App.DispatcherQueue?.TryEnqueue(() =>
+                        {
+                            task.State = UploadTaskStateEnum.Failed;
+                        });
+                        return;
+                    }
                     var uploadId = "";
                     try
                     {
