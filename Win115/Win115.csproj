@@ -35,6 +35,7 @@
 		<None Remove="Views\UploadListPage.xaml" />
 		<None Remove="Views\UserPage.xaml" />
 		<None Remove="Views\MyFilesPage.xaml" />
+		<None Remove="Views\ViewImagesWindow.xaml" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -83,6 +84,7 @@
 		<PackageReference Include="RestSharp" Version="114.0.0" />
 		<PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="114.0.0" />
 		<PackageReference Include="Tanovo.ExtensionMethods" Version="1.0.4" />
+		<PackageReference Include="WinUIEx" Version="2.9.1" />
 	</ItemGroup>
 	<ItemGroup>
 		<Folder Include="Converters\" />
@@ -136,6 +138,9 @@
 	  <None Update="Views\AboutPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </None>
+	  <Page Update="Views\ViewImagesWindow.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	  <Page Update="Views\SelectSavePathContentDialog.xaml">
 	    <SubType>Designer</SubType>
 	  </Page>

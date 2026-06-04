@@ -14,6 +14,8 @@ namespace Win115.Models
 {
     public partial class MyFileItemModel : ObservableObject
     {
+        private static List<string> imageExtensions = ["png", "jpg", "jpeg", "gif"];
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ThumbImg))]
         public partial string? ThumbUrl { get; set; } = string.Empty;
@@ -136,6 +138,8 @@ namespace Win115.Models
         [NotifyPropertyChangedFor(nameof(FileTypeIcon))]
         [NotifyPropertyChangedFor(nameof(IsOnlyDirVisibility))]
         [NotifyPropertyChangedFor(nameof(IsOnlyFileVisibility))]
+        [NotifyPropertyChangedFor(nameof(IsImageVisibility))]
+        [NotifyPropertyChangedFor(nameof(IsIconVisibility))]
         public partial string? FileType { get; set; } = string.Empty;
 
         public string FileTypeText => FileType switch
@@ -151,8 +155,9 @@ namespace Win115.Models
         public string FileTypeIcon => FileType switch 
         {
             "0" => "\uE8B7",
-            "1" => FileExtension?.ToLower() switch 
+            "1" => FileExtension?.ToLower() switch
             {
+                "torrent" => "\uEBD3",
                 "msi" or
                 "jar" or
                 "exe" => "\uE977",
@@ -181,6 +186,10 @@ namespace Win115.Models
             },
             _ => "\uE9CE"
         };
+
+        public Visibility IsImageVisibility => imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility IsIconVisibility => !imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? Visibility.Visible : Visibility.Collapsed;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CreateTimeText))]

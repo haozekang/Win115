@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="Win115.Views.ViewImagesWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Win115.Views"
+    xmlns:m="using:Win115.Models"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="using:CommunityToolkit.WinUI"
+    xmlns:vm="using:Win115.ViewModels"
+    Title="{Binding ElementName=iv, Path=SelectedItem.Name, Mode=OneWay}"
+    d:DataContext="{d:DesignInstance vm:ViewImagesViewModel,
+                                     IsDesignTimeCreatable=False}"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Image
+            Margin="10,5,10,6"
+            HorizontalAlignment="Stretch"
+            AutomationProperties.AccessibilityView="Raw"
+            Source="{Binding ElementName=iv, Path=SelectedItem.OriginalImg, Mode=OneWay}"
+            Stretch="Uniform" />
+        <ItemsView
+            x:Name="iv"
+            Grid.Row="1"
+            Margin="0,0,0,0"
+            Padding="10,0,10,15"
+            HorizontalAlignment="Center"
+            ItemsSource="{x:Bind _viewModel.ImageFileItems, Mode=OneWay}"
+            SelectionChanged="iv_SelectionChanged"
+            SelectionMode="Single">
+            <ItemsView.ItemTemplate>
+                <DataTemplate x:DataType="m:MyFileItemModel">
+                    <ItemContainer
+                        Width="100"
+                        Height="65"
+                        HorizontalAlignment="Left"
+                        AutomationProperties.Name="{x:Bind Name, Mode=OneWay}">
+                        <Image
+                            Margin="4"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            AutomationProperties.AccessibilityView="Raw"
+                            Source="{x:Bind ThumbImg, Mode=OneWay}"
+                            Stretch="Uniform" />
+                    </ItemContainer>
+                </DataTemplate>
+            </ItemsView.ItemTemplate>
+            <ItemsView.Layout>
+                <StackLayout Orientation="Horizontal" Spacing="8" />
+            </ItemsView.Layout>
+        </ItemsView>
+    </Grid>
+</Window>

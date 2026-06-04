@@ -112,12 +112,18 @@ namespace Win115.ViewModels
         public partial IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel> FileItems { get; set; }
 
         [ObservableProperty]
+        public partial IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel> ImageFileItems { get; set; }
+
+        [ObservableProperty]
+        public partial IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel> MediaFileItems { get; set; }
+
+        [ObservableProperty]
         public partial List<MyFileItemModel> SelectedFileItems { get; set; }
 
         [ObservableProperty]
         public partial List<SelectOptionItem> PathItems { get; set; } = new()
         {
-            new SelectOptionItem(-1, "文件")
+            new SelectOptionItem(-1, "根目录")
         };
 
         public MyFilesViewModel(UserInfoModel user, SystemInfoModel system, DownloadListViewModel downloadListViewModel)
@@ -126,8 +132,9 @@ namespace Win115.ViewModels
             System = system;
             _downloadListViewModel = downloadListViewModel;
             FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(-1, SortDirection, SortField));
+            ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(-1, SortDirection, SortField), 1150);
+            MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(-1, SortDirection, SortField), 1150);
             SelectedFileItems = new();
-
             Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
             {
                 switch (msgType.Value)
@@ -146,10 +153,12 @@ namespace Win115.ViewModels
         {
             PathItems = new()
             {
-                new SelectOptionItem(-1, "文件")
+                new SelectOptionItem(-1, "根目录")
             };
             SelectedFileItems.Clear();
             FileItems.Clear();
+            ImageFileItems.Clear();
+            MediaFileItems.Clear();
             HasSelectedItems = false;
             IsCheckAll = false;
         }
@@ -344,11 +353,10 @@ namespace Win115.ViewModels
             {
                 IsBusy = true;
                 await App.UpdatePathBar();
-                FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(PathItems.Last().Id, SortDirection, SortField));
-                //if (IsViewAllView)
-                //{
-                //    await FileItems.RefreshAsync();
-                //}
+                var id = PathItems.Last().Id;
+                FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(id, SortDirection, SortField));
+                ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(id, SortDirection, SortField));
+                MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(id, SortDirection, SortField));
             }
             catch (Exception ex)
             {

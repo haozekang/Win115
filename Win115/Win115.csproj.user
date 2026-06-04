@@ -27,6 +27,9 @@
     <None Update="Views\AboutPage.xaml">
       <SubType>Designer</SubType>
     </None>
+    <Page Update="Views\ViewImagesWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Views\SearchFilesPage.xaml">
       <SubType>Designer</SubType>
     </Page>

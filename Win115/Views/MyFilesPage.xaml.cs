@@ -1,4 +1,5 @@
 using ABI.System;
+using Autofac;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -23,6 +24,7 @@ using Win115.ViewModels;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.System;
+using WinUIEx;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -94,8 +96,14 @@ namespace Win115.Views
                 {
                     await viewModel.EnterFolderCommand.ExecuteAsync(item);
                 }
-                else
+                else if (item.FileType == "1" 
+                    && item.IsImageVisibility == Visibility.Visible)
                 {
+                    using var scope = App.CreateScope();
+                    var vm = scope.Resolve<ViewImagesViewModel>();
+                    ViewImagesWindow vw = new ViewImagesWindow(vm);
+                    vw.SetIsAlwaysOnTop(true);
+                    vw.Show();
                 }
             }
         }

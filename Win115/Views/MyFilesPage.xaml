@@ -390,6 +390,21 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
+            <Grid.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem
+                        Command="{x:Bind viewModel.RefreshFilesCommand}"
+                        Icon="{ui:FontIcon Glyph='&#xE72C;'}"
+                        Text="刷新" />
+                    <MenuFlyoutItem
+                        Command="{x:Bind viewModel.UploadFileCommand}"
+                        CommandParameter="{Binding .}"
+                        Icon="{ui:FontIcon Glyph='&#xE898;'}"
+                        Tag="upload"
+                        Text="上传文件"
+                        Visibility="{Binding IsOnlyDirVisibility}" />
+                </MenuFlyout>
+            </Grid.ContextFlyout>
             <GridView
                 x:Name="iv"
                 Grid.Row="1"
@@ -426,7 +441,13 @@
                                 Margin="0,20,0,0"
                                 VerticalAlignment="Center"
                                 FontSize="24"
-                                Glyph="{x:Bind FileTypeIcon, Mode=OneWay}" />
+                                Glyph="{x:Bind FileTypeIcon, Mode=OneWay}"
+                                Visibility="{x:Bind IsIconVisibility, Mode=OneWay}" />
+                            <Image
+                                Grid.RowSpan="2"
+                                Source="{x:Bind ThumbImg, Mode=OneWay}"
+                                Stretch="UniformToFill"
+                                Visibility="{x:Bind IsImageVisibility, Mode=OneWay}" />
                             <TextBlock
                                 Grid.Row="1"
                                 Margin="8,0,8,0"
@@ -434,7 +455,8 @@
                                 VerticalAlignment="Center"
                                 FontSize="12"
                                 Text="{x:Bind Name, Mode=OneWay}"
-                                TextTrimming="CharacterEllipsis" />
+                                TextTrimming="CharacterEllipsis"
+                                Visibility="{x:Bind IsIconVisibility, Mode=OneWay}" />
                         </Grid>
                     </DataTemplate>
                 </GridView.ItemTemplate>
@@ -469,7 +491,14 @@
                                 <FontIcon
                                     Width="24"
                                     Height="24"
-                                    Glyph="{x:Bind FileTypeIcon, Mode=OneWay}" />
+                                    Glyph="{x:Bind FileTypeIcon, Mode=OneWay}"
+                                    Visibility="{x:Bind IsIconVisibility, Mode=OneWay}" />
+                                <Image
+                                    Width="24"
+                                    Height="24"
+                                    Source="{x:Bind ThumbImg, Mode=OneWay}"
+                                    Stretch="Uniform"
+                                    Visibility="{x:Bind IsImageVisibility, Mode=OneWay}" />
                                 <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
                             </StackPanel>
                             <TextBlock
