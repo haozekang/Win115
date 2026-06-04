@@ -556,7 +556,7 @@ namespace Win115.ViewModels
                     {
                         await LogHelper.Error(ex);
                     }
-                    var partSize = 100 * 1024;
+                    var partSize = 1 * 1024 * 1024;
                     var fi = new FileInfo(localFilename);
                     var partCount = fileSize / partSize;
                     if (fileSize % partSize != 0)
@@ -624,15 +624,6 @@ namespace Win115.ViewModels
                     {
                         Debug.WriteLine("complete multi part failed, {0}", ex.Message);
                     }
-                    //UploadObjectRequest request = new UploadObjectRequest(bucket, objectId, localFilename)
-                    //{
-                    //    PartSize = 1 * 1024 * 1024,
-                    //    ParallelThreadCount = 3,
-                    //    CheckpointDir = checkpointDir,
-                    //    StreamTransferProgress = streamProgressCallback,
-                    //    Metadata = callbackMeta,
-                    //};
-                    //var result = client.ResumableUploadObject(request);
                 }
             }
             catch (Exception ex)

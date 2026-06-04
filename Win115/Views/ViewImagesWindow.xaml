@@ -10,9 +10,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="using:CommunityToolkit.WinUI"
     xmlns:vm="using:Win115.ViewModels"
-    Title="{Binding ElementName=iv, Path=SelectedItem.Name, Mode=OneWay}"
+    Title="图片浏览"
     d:DataContext="{d:DesignInstance vm:ViewImagesViewModel,
                                      IsDesignTimeCreatable=False}"
+    Activated="Window_Activated"
     mc:Ignorable="d">
 
     <Window.SystemBackdrop>
@@ -21,22 +22,96 @@
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Image
-            Margin="10,5,10,6"
+        <TitleBar
+            x:Name="titleBar"
+            Title="图片浏览"
+            Grid.Row="0"
+            Margin="0,0,-46,0"
+            Padding="0,0,0,0"
             HorizontalAlignment="Stretch"
-            AutomationProperties.AccessibilityView="Raw"
-            Source="{Binding ElementName=iv, Path=SelectedItem.OriginalImg, Mode=OneWay}"
-            Stretch="Uniform" />
+            IsBackButtonVisible="False"
+            IsPaneToggleButtonVisible="False"
+            Subtitle="{x:Bind _viewModel.SelectedImageItem.Name, Mode=OneWay, FallbackValue='', TargetNullValue=''}">
+            <TitleBar.IconSource>
+                <BitmapIconSource UriSource="ms-appx:///Assets/favicon.png" />
+            </TitleBar.IconSource>
+            <Grid />
+            <TitleBar.RightHeader>
+                <StackPanel
+                    x:Name="RightHeaderPanel"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="4">
+                    <AppBarButton
+                        Width="42"
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        Click="btn_max_Click"
+                        LabelPosition="Collapsed"
+                        ToolTipService.ToolTip="最大化">
+                        <AppBarButton.Icon>
+                            <FontIcon Glyph="&#xE922;" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton
+                        Width="42"
+                        MinWidth="28"
+                        MinHeight="28"
+                        Margin="0,0,0,0"
+                        Click="btn_close_Click"
+                        LabelPosition="Collapsed"
+                        ToolTipService.ToolTip="关闭">
+                        <AppBarButton.Resources>
+                            <!--  PointerOver 状态  -->
+                            <SolidColorBrush x:Key="AppBarButtonForegroundPointerOver" Color="{ThemeResource SystemColorButtonTextColor}" />
+
+                            <!--  Pressed 状态  -->
+                            <SolidColorBrush x:Key="AppBarButtonBackgroundPressed" Color="#FF6666" />
+                            <SolidColorBrush x:Key="AppBarButtonForegroundPressed" Color="White" />
+                        </AppBarButton.Resources>
+                        <AppBarButton.Icon>
+                            <FontIcon Glyph="&#xE8BB;" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                </StackPanel>
+            </TitleBar.RightHeader>
+        </TitleBar>
+        <ScrollView
+            x:Name="sc"
+            Grid.Row="1"
+            Margin="10,5,10,0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            ContentOrientation="None"
+            HorizontalScrollBarVisibility="Auto"
+            HorizontalScrollMode="Auto"
+            IsTabStop="True"
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto"
+            ZoomMode="Enabled">
+            <Image
+                x:Name="img"
+                AutomationProperties.AccessibilityView="Raw"
+                Source="{Binding ElementName=iv, Path=SelectedItem.OriginalImg, Mode=OneWay}"
+                Stretch="Uniform" />
+        </ScrollView>
+        <ProgressRing
+            Grid.Row="1"
+            IsActive="{x:Bind _viewModel.IsImageLoading, Mode=OneWay}"
+            Visibility="{x:Bind _viewModel.ImageLoadingVisibility, Mode=OneWay}" />
         <ItemsView
             x:Name="iv"
-            Grid.Row="1"
+            Grid.Row="2"
             Margin="0,0,0,0"
-            Padding="10,0,10,15"
+            Padding="10,15,10,15"
             HorizontalAlignment="Center"
             ItemsSource="{x:Bind _viewModel.ImageFileItems, Mode=OneWay}"
+            PointerWheelChanged="iv_PointerWheelChanged"
             SelectionChanged="iv_SelectionChanged"
             SelectionMode="Single">
             <ItemsView.ItemTemplate>

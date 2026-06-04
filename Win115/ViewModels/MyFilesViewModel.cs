@@ -132,8 +132,8 @@ namespace Win115.ViewModels
             System = system;
             _downloadListViewModel = downloadListViewModel;
             FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(-1, SortDirection, SortField));
-            ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(-1, SortDirection, SortField), 1150);
-            MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(-1, SortDirection, SortField), 1150);
+            ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(-1, SortDirection, SortField));
+            MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(-1, SortDirection, SortField));
             SelectedFileItems = new();
             Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
             {

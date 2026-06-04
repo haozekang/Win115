@@ -99,11 +99,26 @@ namespace Win115.Views
                 else if (item.FileType == "1" 
                     && item.IsImageVisibility == Visibility.Visible)
                 {
+                    MyFileItemModel? selectedItem = null;
                     using var scope = App.CreateScope();
                     var vm = scope.Resolve<ViewImagesViewModel>();
                     ViewImagesWindow vw = new ViewImagesWindow(vm);
-                    vw.SetIsAlwaysOnTop(true);
+                    for (; vm.ImageFileItems.HasMoreItems ; )
+                    {
+                        await vm.ImageFileItems.LoadMoreItemsAsync(100);
+                        selectedItem = vm.SelectedImageItem = vm.ImageFileItems.FirstOrDefault(x => x.Id == item.Id);
+                        if (selectedItem is not null)
+                        {
+                            break;
+                        }
+                    }
+                    if (selectedItem is null)
+                    {
+                        selectedItem = vm.ImageFileItems.FirstOrDefault(x => x.Id == item.Id);
+                    }
+                    //vw.SetIsAlwaysOnTop(true);
                     vw.Show();
+                    vw.SetSelectedItem(selectedItem);
                 }
             }
         }

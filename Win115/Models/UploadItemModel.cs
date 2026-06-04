@@ -16,6 +16,12 @@ namespace Win115.Models
         public partial int? TaskId { get; set; } = 0;
 
         [ObservableProperty]
+        public partial string? UploadId { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial long? PartNumber { get; set; } = -1;
+
+        [ObservableProperty]
         public partial string? FileId { get; set; } = string.Empty;
 
         [ObservableProperty]

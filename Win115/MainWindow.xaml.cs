@@ -119,6 +119,7 @@ namespace Win115
         private void btn_close_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
+            Environment.Exit(0);
         }
 
         private void btn_min_Click(object sender, RoutedEventArgs e)
