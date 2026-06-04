@@ -140,6 +140,8 @@ namespace Win115.Models
         [NotifyPropertyChangedFor(nameof(IsOnlyFileVisibility))]
         [NotifyPropertyChangedFor(nameof(IsImageVisibility))]
         [NotifyPropertyChangedFor(nameof(IsIconVisibility))]
+        [NotifyPropertyChangedFor(nameof(IsImage))]
+        [NotifyPropertyChangedFor(nameof(IsIcon))]
         public partial string? FileType { get; set; } = string.Empty;
 
         public string FileTypeText => FileType switch
@@ -186,6 +188,10 @@ namespace Win115.Models
             },
             _ => "\uE9CE"
         };
+
+        public bool IsImage => imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? true : false;
+
+        public bool IsIcon => !imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? true : false;
 
         public Visibility IsImageVisibility => imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? Visibility.Visible : Visibility.Collapsed;
 

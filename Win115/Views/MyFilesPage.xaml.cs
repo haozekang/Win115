@@ -503,7 +503,10 @@ namespace Win115.Views
                     {
                         if ((item.Tag as string) == "open")
                         {
-                            item.Visibility = Visibility.Collapsed;
+                            if (!file.IsImage)
+                            {
+                                item.Visibility = Visibility.Collapsed;
+                            }
                         }
                     }
                     item.CommandParameter = element?.Content;
