@@ -5,10 +5,10 @@ namespace Win115.Dtos
 {
     public record OpenUfileUpdateDTO
     {
-        [JsonProperty("file_name"), DefaultValue("")]
+        [JsonProperty("file_name")]
         public string? FileName { get; set; }
 
-        [JsonProperty("star"), DefaultValue("")]
+        [JsonProperty("star")]
         public string? Star { get; set; }
     }
 }

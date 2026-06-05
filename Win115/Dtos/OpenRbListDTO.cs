@@ -13,25 +13,25 @@ namespace Win115.Dtos
         /// <summary>
         /// 偏移量
         /// </summary>
-        [JsonProperty("offset"), DefaultValue(0)]
+        [JsonProperty("offset")]
         public long? Offset { get; set; }
 
         /// <summary>
         /// 分页量
         /// </summary>
-        [JsonProperty("limit"), DefaultValue(0)]
+        [JsonProperty("limit")]
         public long? Limit { get; set; }
 
         /// <summary>
         /// 分页量
         /// </summary>
-        [JsonProperty("count"), DefaultValue("")]
+        [JsonProperty("count")]
         public string? Count { get; set; }
 
         /// <summary>
         /// 是否设置回收站密码
         /// </summary>
-        [JsonProperty("rb_pass"), DefaultValue(0)]
+        [JsonProperty("rb_pass")]
         public long? RbPass { get; set; }
 
         /// <summary>
@@ -82,61 +82,61 @@ namespace Win115.Dtos
         /// <summary>
         /// 文件(夹)回收站ID
         /// </summary>
-        [JsonProperty("id"), DefaultValue("")]
+        [JsonProperty("id")]
         public string? Id { get; set; }
 
         /// <summary>
         /// 文件(夹)名称
         /// </summary>
-        [JsonProperty("file_name"), DefaultValue("")]
+        [JsonProperty("file_name")]
         public string? FileName { get; set; }
 
         /// <summary>
         /// 类型（1：文件，2：目录
         /// </summary>
-        [JsonProperty("type"), DefaultValue("")]
+        [JsonProperty("type")]
         public string? Type { get; set; }
 
         /// <summary>
         /// 文件大小
         /// </summary>
-        [JsonProperty("file_size"), DefaultValue("")]
+        [JsonProperty("file_size")]
         public string? FileSize { get; set; }
 
         /// <summary>
         /// 删除日期
         /// </summary>
-        [JsonProperty("dtime"), DefaultValue("")]
+        [JsonProperty("dtime")]
         public string? DeleteTime { get; set; }
 
         /// <summary>
         /// 缩略图地址
         /// </summary>
-        [JsonProperty("thumb_url"), DefaultValue("")]
+        [JsonProperty("thumb_url")]
         public string? ThumbUrl { get; set; }
 
         /// <summary>
         /// 还原状态，-1 表示还原中，0 表示正常状态
         /// </summary>
-        [JsonProperty("status"), DefaultValue("")]
+        [JsonProperty("status")]
         public string? Status { get; set; }
 
         /// <summary>
         /// 原文件的父目录id
         /// </summary>
-        [JsonProperty("cid"), DefaultValue("")]
+        [JsonProperty("cid")]
         public string? ParentId { get; set; }
 
         /// <summary>
         /// 原文件的父目录名称
         /// </summary>
-        [JsonProperty("parent_name"), DefaultValue("")]
+        [JsonProperty("parent_name")]
         public string? ParentName { get; set; }
 
         /// <summary>
         /// 文件提取码
         /// </summary>
-        [JsonProperty("pick_code"), DefaultValue("")]
+        [JsonProperty("pick_code")]
         public string? PickCode { get; set; }
     }
 }

@@ -13,19 +13,19 @@ namespace Win115.Dtos
         /// <summary>
         /// 用于访问资源接口的凭证
         /// </summary>
-        [JsonProperty("access_token"), DefaultValue("")]
+        [JsonProperty("access_token")]
         public string? AccessToken { get; set; }
 
         /// <summary>
         /// 用于刷新 access_token，有效期1年
         /// </summary>
-        [JsonProperty("refresh_token"), DefaultValue("")]
+        [JsonProperty("refresh_token")]
         public string? RefreshToken { get; set; }
 
         /// <summary>
         /// access_token 有效期，单位秒
         /// </summary>
-        [JsonProperty("expires_in"), DefaultValue(0)]
+        [JsonProperty("expires_in")]
         public int ExpiresIn { get; set; }
     }
 }

@@ -5,13 +5,13 @@ namespace Win115.Dtos
 {
     public record GetQeCodeStatusDTO
     {
-        [JsonProperty("msg"), DefaultValue("")]
+        [JsonProperty("msg")]
         public string? Message { get; set; }
 
-        [JsonProperty("status"), DefaultValue(0)]
+        [JsonProperty("status")]
         public int Status { get; set; }
 
-        [JsonProperty("version"), DefaultValue("")]
+        [JsonProperty("version")]
         public string? Version { get; set; }
     }
 }

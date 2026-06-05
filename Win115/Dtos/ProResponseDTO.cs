@@ -5,28 +5,28 @@ namespace Win115.Dtos
 {
     public record ProResponseDTO<T>
     {
-        [JsonProperty("state"), DefaultValue(false)]
+        [JsonProperty("state")]
         public bool State { get; set; }
 
-        [JsonProperty("code"), DefaultValue(0)]
+        [JsonProperty("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message"), DefaultValue("")]
+        [JsonProperty("message")]
         public string? Message { get; set; }
 
-        [JsonProperty("data"), DefaultValue(null)]
+        [JsonProperty("data")]
         public T? Data { get; set; }
     }
 
     public record ProResponseDTO
     {
-        [JsonProperty("state"), DefaultValue(false)]
+        [JsonProperty("state")]
         public bool State { get; set; }
 
-        [JsonProperty("code"), DefaultValue(0)]
+        [JsonProperty("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message"), DefaultValue("")]
+        [JsonProperty("message")]
         public string? Message { get; set; }
     }
 }

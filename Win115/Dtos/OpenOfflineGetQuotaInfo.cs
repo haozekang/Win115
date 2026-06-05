@@ -8,13 +8,13 @@ namespace Win115.Dtos
         /// <summary>
         /// 用户总配额数量
         /// </summary>
-        [JsonProperty("count"), DefaultValue(0)]
+        [JsonProperty("count")]
         public long? Count { get; set; }
 
         /// <summary>
         /// 用户总剩余配额数量
         /// </summary>
-        [JsonProperty("surplus"), DefaultValue(0)]
+        [JsonProperty("surplus")]
         public long? Surplus { get; set; }
     }
 }

@@ -10,10 +10,10 @@ namespace Win115.Dtos
 {
     public record AliyunOssCallbackDTO
     {
-        [JsonProperty("callbackUrl"), DefaultValue("")]
+        [JsonProperty("callbackUrl")]
         public string? CallbackUrl { get; set; }
 
-        [JsonProperty("callbackBody"), DefaultValue("")]
+        [JsonProperty("callbackBody")]
         public string? CallbackBody { get; set; }
     }
 }

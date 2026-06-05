@@ -3,36 +3,36 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record ResponseDTO(int State, int Code, string? Message)
+    public record ResponseDTO
     {
-        [JsonProperty("state"), DefaultValue(0)]
-        public int State { get; } = State;
+        [JsonProperty("state")]
+        public int State { get; set; }
 
-        [JsonProperty("code"), DefaultValue(0)]
-        public int Code { get; } = Code;
+        [JsonProperty("code")]
+        public int Code { get; set; }
 
-        [JsonProperty("message"), DefaultValue("")]
-        public string? Message { get; } = Message;
+        [JsonProperty("message")]
+        public string? Message { get; set; }
     }
 
-    public record ResponseDTO<T>(int State, int Code, string? Message, int ErrNo, string? Error, T? Data)
+    public record ResponseDTO<T>
     {
-        [JsonProperty("state"), DefaultValue(0)]
-        public int State { get; } = State;
+        [JsonProperty("state")]
+        public int State { get; set; }
 
-        [JsonProperty("code"), DefaultValue(0)]
-        public int Code { get; } = Code;
+        [JsonProperty("code")]
+        public int Code { get; set; }
 
-        [JsonProperty("message"), DefaultValue("")]
-        public string? Message { get; } = Message;
+        [JsonProperty("message")]
+        public string? Message { get; set; }
 
-        [JsonProperty("error"), DefaultValue("")]
-        public string? Error { get; } = Error;
+        [JsonProperty("error")]
+        public string? Error { get; set; }
 
-        [JsonProperty("errno"), DefaultValue(0)]
-        public int ErrNo { get; } = ErrNo;
+        [JsonProperty("errno")]
+        public int ErrNo { get; set; }
 
-        [JsonProperty("data"), DefaultValue(null)]
-        public T? Data { get; } = Data;
+        [JsonProperty("data")]
+        public T? Data { get; set; }
     }
 }
