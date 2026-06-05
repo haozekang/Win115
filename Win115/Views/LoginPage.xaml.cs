@@ -1,6 +1,8 @@
+using CommunityToolkit.WinUI;
 using LiteDB;
 using Microsoft.UI.Xaml.Controls;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Asn1.Ocsp;
 using Org.BouncyCastle.Security;
 using RestSharp;
 using System;
@@ -36,6 +38,7 @@ namespace Win115.Views
 
         private async void RefreshQRCode()
         {
+            RestResponse? res = null;
             try
             {
                 var hash = DigestUtilities.CalculateDigest("sha256", App.CodeVerifier.GetBytes()).GetBase64String().Replace("+", "-").Replace("/", "_");
@@ -45,18 +48,33 @@ namespace Win115.Views
                 req.AddOrUpdateParameter("code_challenge_method", "sha256");
                 req.AlwaysMultipartFormData = true;
 
-                var res = await App.LoginClient.PostAsync<ResponseDTO<OpenAuthDeviceCodeDTO>>(req);
-                if (res is null || res.Data?.QrCode is null)
+                res = await App.LoginClient.PostAsync(req);
+                if (res is null || !res.IsSuccessful || res.Content.IsBlank())
                 {
                     return;
                 }
-                App.DispatcherQueue!.TryEnqueue(async () =>
+                var resDto = JsonConvert.DeserializeObject<ResponseDTO>(res.Content); 
+                if (resDto is null || resDto.Code != 0 || resDto.State != 1)
                 {
-                    img_qrcode.Source = await QRCodeHelper.CreateQrCodeForUrl(res.Data.QrCode);
+                    return;
+                }
+                var qrDto = JsonConvert.DeserializeObject<ResponseDTO<OpenAuthDeviceCodeDTO>>(res.Content);
+                if (qrDto is null || qrDto.Data is null)
+                {
+                    return;
+                }
+                if (qrDto.Data.QrCode.IsBlank() || qrDto.Data.Uid.IsBlank() || qrDto.Data.Time <= 0 || qrDto.Data.Sign.IsBlank())
+                {
+                    return;
+                }
+                var qrImg = await QRCodeHelper.CreateQrCodeForUrl(qrDto.Data.QrCode);
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    img_qrcode.Source = qrImg;
                 });
-                var uid = res.Data.Uid;
-                var time = res.Data.Time;
-                var sign = res.Data.Sign;
+                var uid = qrDto.Data.Uid;
+                var time = qrDto.Data.Time;
+                var sign = qrDto.Data.Sign;
                 if (this.Tag is not ContentDialog dialog)
                 {
                     return;
@@ -171,6 +189,7 @@ namespace Win115.Views
             }
             catch (Exception ex)
             {
+                await LogHelper.Error($"Res Content:{res?.Content}");
                 await LogHelper.Error(ex);
             }
         }

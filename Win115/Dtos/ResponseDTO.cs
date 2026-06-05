@@ -3,6 +3,18 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
+    public record ResponseDTO(int State, int Code, string? Message)
+    {
+        [JsonProperty("state"), DefaultValue(0)]
+        public int State { get; } = State;
+
+        [JsonProperty("code"), DefaultValue(0)]
+        public int Code { get; } = Code;
+
+        [JsonProperty("message"), DefaultValue("")]
+        public string? Message { get; } = Message;
+    }
+
     public record ResponseDTO<T>(int State, int Code, string? Message, int ErrNo, string? Error, T? Data)
     {
         [JsonProperty("state"), DefaultValue(0)]
@@ -22,6 +34,5 @@ namespace Win115.Dtos
 
         [JsonProperty("data"), DefaultValue(null)]
         public T? Data { get; } = Data;
-
     }
 }
