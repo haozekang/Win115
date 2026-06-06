@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record OpenUfileSearchDTO
+    public class OpenUfileSearchDTO
     {
         [JsonProperty("count")]
         public long? Count { get; set; }
@@ -27,7 +27,7 @@ namespace Win115.Dtos
         public string? Message { get; set; }
     }
 
-    public record FSearchDataDTO
+    public class FSearchDataDTO
     {
         /// <summary>
         /// 文件ID

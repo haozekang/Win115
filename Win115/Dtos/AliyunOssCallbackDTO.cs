@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Win115.Dtos
 {
-    public record AliyunOssCallbackDTO
+    public class AliyunOssCallbackDTO
     {
         [JsonProperty("callbackUrl")]
         public string? CallbackUrl { get; set; }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Win115.Dtos
 {
-    public record OpenUserInfoDTO
+    public class OpenUserInfoDTO
     {
         /// <summary>
         /// 用户ID
@@ -53,7 +53,7 @@ namespace Win115.Dtos
         public VipInfoDTO? VipInfo { get; set; }
     }
 
-    public record VipInfoDTO
+    public class VipInfoDTO
     {
         /// <summary>
         /// vip等级名称；原石会员、尝鲜VIP、体验VIP、月费VIP、年费VIP、年费VIP高级版、年费VIP特级版、超级VIP、长期VIP；
@@ -68,7 +68,7 @@ namespace Win115.Dtos
         public long? Expire { get; set; }
     }
 
-    public record RtSpaceInfoDTO
+    public class RtSpaceInfoDTO
     {
         /// <summary>
         /// 用户总空间
@@ -89,7 +89,7 @@ namespace Win115.Dtos
         public SizeDTO? AllUse { get; set; }
     }
 
-    public record SizeDTO
+    public class SizeDTO
     {
         /// <summary>
         /// 空间大小(字节)

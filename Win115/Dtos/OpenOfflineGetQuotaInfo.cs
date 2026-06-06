@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record OpenOfflineGetQuotaInfo
+    public class OpenOfflineGetQuotaInfo
     {
         /// <summary>
         /// 用户总配额数量

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Win115.Dtos
 {
-    public record OpenUploadResumeDTO
+    public class OpenUploadResumeDTO
     {
         /// <summary>
         /// 上传任务唯一ID,用于续传
@@ -42,7 +42,7 @@ namespace Win115.Dtos
         public OpenUploadResumeCallbackDTO? Callback { get; set; }
     }
 
-    public record OpenUploadResumeCallbackDTO
+    public class OpenUploadResumeCallbackDTO
     {
         /// <summary>
         /// 上传完回调信息

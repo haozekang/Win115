@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record OpenOfflineGetTaskListDTO
+    public class OpenOfflineGetTaskListDTO
     {
         /// <summary>
         /// 当前第几页
@@ -31,7 +31,7 @@ namespace Win115.Dtos
     }
 
 
-    public record OpenOfflineTaskItemDTO
+    public class OpenOfflineTaskItemDTO
     {
         /// <summary>
         /// 任务sha1

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Win115.Dtos
 {
-    public record OpenFolderAddDTO
+    public class OpenFolderAddDTO
     {
         /// <summary>
         /// 新建的文件夹名称

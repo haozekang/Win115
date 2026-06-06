@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record OpenUfileUpdateDTO
+    public class OpenUfileUpdateDTO
     {
         [JsonProperty("file_name")]
         public string? FileName { get; set; }

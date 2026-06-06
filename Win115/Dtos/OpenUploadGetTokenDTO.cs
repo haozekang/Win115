@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Win115.Dtos
 {
-    public record OpenUploadGetTokenDTO
+    public class OpenUploadGetTokenDTO
     {
         /// <summary>
         /// 上传域名

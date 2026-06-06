@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record OpenUfileFilesDTO
+    public class OpenUfileFilesDTO
     {
         /// <summary>
         /// 排序
@@ -81,7 +81,7 @@ namespace Win115.Dtos
         public string? Message { get; set; }
     }
 
-    public record FDataDTO
+    public class FDataDTO
     {
         /// <summary>
         /// 文件ID
@@ -246,7 +246,7 @@ namespace Win115.Dtos
         public string? UO { get; set; }
     }
 
-    public record FLabelDTO
+    public class FLabelDTO
     {
         /// <summary>
         /// 文件标签id
@@ -291,7 +291,7 @@ namespace Win115.Dtos
         public long? CreateTime { get; set; }
     }
 
-    public record FPathDTO
+    public class FPathDTO
     {
         [JsonProperty("name")]
         public string? Name { get; set; }

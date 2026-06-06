@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record OpenOfflineAddTaskUrlsDTO
+    public class OpenOfflineAddTaskUrlsDTO
     {
         /// <summary>
         /// 链接任务添加状态，成功true；失败false

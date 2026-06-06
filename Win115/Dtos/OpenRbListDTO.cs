@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Win115.Dtos
 {
-    public record OpenRbListDTO
+    public class OpenRbListDTO
     {
         /// <summary>
         /// 偏移量
@@ -77,7 +77,7 @@ namespace Win115.Dtos
     }
 
 
-    public record OpenRbListDataItemDTO
+    public class OpenRbListDataItemDTO
     {
         /// <summary>
         /// 文件(夹)回收站ID

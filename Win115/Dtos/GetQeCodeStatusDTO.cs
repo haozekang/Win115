@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record GetQeCodeStatusDTO
+    public class GetQeCodeStatusDTO
     {
         [JsonProperty("msg")]
         public string? Message { get; set; }

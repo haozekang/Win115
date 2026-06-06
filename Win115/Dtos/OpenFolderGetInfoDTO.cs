@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record OpenFolderGetInfoDTO
+    public class OpenFolderGetInfoDTO
     {
         /// <summary>
         /// 包含文件总数量
@@ -105,7 +105,7 @@ namespace Win115.Dtos
     /// <summary>
     /// 路径信息子对象
     /// </summary>
-    public record OpenFolderGetInfoPathDTO
+    public class OpenFolderGetInfoPathDTO
     {
         /// <summary>
         /// 父目录ID

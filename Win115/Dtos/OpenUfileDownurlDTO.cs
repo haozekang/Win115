@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Win115.Dtos
 {
-    public record OpenUfileDownurlDTO
+    public class OpenUfileDownurlDTO
     {
         [JsonProperty("file_name")]
         public string? FileName { get; set; }
@@ -21,7 +21,7 @@ namespace Win115.Dtos
         public UfileDownurlFileDataUrlDTO? Url { get; set; }
     }
 
-    public record UfileDownurlFileDataUrlDTO
+    public class UfileDownurlFileDataUrlDTO
     {
         [JsonProperty("url")]
         public string? Url { get; set; }

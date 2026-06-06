@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Win115.Dtos
 {
-    public record OpenAuthDeviceCodeDTO
+    public class OpenAuthDeviceCodeDTO
     {
         [JsonProperty("uid")]
         public string? Uid { get; set; }

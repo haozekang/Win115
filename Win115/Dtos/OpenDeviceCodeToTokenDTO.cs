@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Win115.Dtos
 {
-    public record OpenDeviceCodeToTokenDTO
+    public class OpenDeviceCodeToTokenDTO
     {
         /// <summary>
         /// 用于访问资源接口的凭证

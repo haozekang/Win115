@@ -178,7 +178,7 @@ namespace Win115.ViewModels
         {
             if (task.FilePath is null || task.FilePath.AsFilePathAndExists() != true)
             {
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await App.DispatcherQueue!.EnqueueAsync(() =>
                 {
                     task.State = UploadTaskStateEnum.Failed;
                 });
@@ -189,7 +189,7 @@ namespace Win115.ViewModels
             var fileSize = task.Size;
             if (fileSize is null || fileSize == 0)
             {
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await App.DispatcherQueue!.EnqueueAsync(() =>
                 {
                     task.State = UploadTaskStateEnum.Failed;
                 });
@@ -200,7 +200,7 @@ namespace Win115.ViewModels
             {
                 target = "U_1_0";
             }
-            App.DispatcherQueue?.TryEnqueue(() =>
+            await App.DispatcherQueue!.EnqueueAsync(() =>
             {
                 task.State = UploadTaskStateEnum.CalcHash;
             });
@@ -242,7 +242,7 @@ namespace Win115.ViewModels
                 var resInit = await App.ProApiClient.PostAsync(reqInit);
                 if (!resInit.IsSuccessful || resInit.Content.IsBlank())
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.State = UploadTaskStateEnum.Failed;
                     });
@@ -251,7 +251,7 @@ namespace Win115.ViewModels
                 dtoInitNoCallback = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadInitNoCallbackDTO>>(resInit.Content);
                 if (dtoInitNoCallback is null || !dtoInitNoCallback.State || dtoInitNoCallback.Data is null)
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.State = UploadTaskStateEnum.Failed;
                     });
@@ -260,7 +260,7 @@ namespace Win115.ViewModels
                 fNoCallback = dtoInitNoCallback.Data;
                 if (fNoCallback.Status == 2)
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.State = UploadTaskStateEnum.Completed;
                     });
@@ -288,7 +288,7 @@ namespace Win115.ViewModels
                     resInit = await App.ProApiClient.PostAsync(reqInit);
                     if (!resInit.IsSuccessful || resInit.Content.IsBlank())
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -297,7 +297,7 @@ namespace Win115.ViewModels
                     dtoInitNoCallback = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadInitNoCallbackDTO>>(resInit.Content);
                     if (dtoInitNoCallback is null || !dtoInitNoCallback.State || dtoInitNoCallback.Data is null)
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -306,7 +306,7 @@ namespace Win115.ViewModels
                     fNoCallback = dtoInitNoCallback.Data;
                     if (fNoCallback.Status == 2)
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.PickCode = fNoCallback.PickCode;
                             task.FileId = fNoCallback.FileId;
@@ -323,7 +323,7 @@ namespace Win115.ViewModels
                     }
                     else
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -337,7 +337,7 @@ namespace Win115.ViewModels
                 }
                 if (f is null)
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.State = UploadTaskStateEnum.Failed;
                     });
@@ -345,7 +345,7 @@ namespace Win115.ViewModels
                 }
                 bucket = f.Bucket;
                 objectId = f.Object;
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await App.DispatcherQueue!.EnqueueAsync(() =>
                 {
                     task.PickCode = f.PickCode;
                     task.Bucket = bucket;
@@ -355,7 +355,7 @@ namespace Win115.ViewModels
                 {
                     callback = f.Callback.Callback;
                     callbackVars = JsonConvert.DeserializeObject<Dictionary<string, string>>(f.Callback.CallbackVar);
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.CallbackVar = callbackVars;
                         task.Callback = callback;
@@ -368,7 +368,7 @@ namespace Win115.ViewModels
             }
             if (callback.IsBlank())
             {
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await App.DispatcherQueue!.EnqueueAsync(() =>
                 {
                     task.State = UploadTaskStateEnum.Failed;
                 });
@@ -380,7 +380,7 @@ namespace Win115.ViewModels
                 var resToken = await App.ProApiClient.GetAsync(reqToken);
                 if (!resToken.IsSuccessful || resToken.Content.IsBlank())
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.State = UploadTaskStateEnum.Failed;
                     });
@@ -389,7 +389,7 @@ namespace Win115.ViewModels
                 var dtoToken = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadGetTokenDTO>>(resToken.Content);
                 if (dtoToken is null || !dtoToken.State || dtoToken.Data is null || dtoToken.Data.Endpoint.IsBlank())
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.State = UploadTaskStateEnum.Failed;
                     });
@@ -405,7 +405,7 @@ namespace Win115.ViewModels
                 securityToken = dtoToken.Data.SecurityToken;
                 expiration = dtoToken.Data.Expiration;
                 accessKeyId = dtoToken.Data.AccessKeyId;
-                App.DispatcherQueue?.TryEnqueue(() =>
+                await App.DispatcherQueue!.EnqueueAsync(() =>
                 {
                     task.Region = region;
                     task.Endpoint = endpoint;
@@ -434,7 +434,7 @@ namespace Win115.ViewModels
                     var callbackDto = JsonConvert.DeserializeObject<AliyunOssCallbackDTO>(callback);
                     if (callbackDto is null)
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -472,7 +472,7 @@ namespace Win115.ViewModels
                     var resResume = await App.ProApiClient.PostAsync(reqResume);
                     if (!resResume.IsSuccessful || resResume.Content.IsBlank())
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -481,7 +481,7 @@ namespace Win115.ViewModels
                     var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(resResume.Content);
                     if (dto is null || dto.State != true)
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -490,7 +490,7 @@ namespace Win115.ViewModels
                     var dtoResume = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadResumeDTO>>(resResume.Content);
                     if (dtoResume is null || dtoResume.Data is null || dtoResume.Data.Callback is null)
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -498,7 +498,7 @@ namespace Win115.ViewModels
                     }
                     if (dtoResume.Data.Callback.Callback.IsBlank() || dtoResume.Data.Callback.CallbackVar.IsBlank())
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -512,13 +512,13 @@ namespace Win115.ViewModels
                     var callbackDto = JsonConvert.DeserializeObject<AliyunOssCallbackDTO>(callback);
                     if (callbackDto is null || callbackVars is null)
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
                         return;
                     }
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.PickCode = _uploadingPk;
                         task.Bucket = bucket;
@@ -544,7 +544,7 @@ namespace Win115.ViewModels
                     callbackMeta.AddHeader(HttpHeaders.CallbackVar, callbackVariableHeaderBuilder.Build());
                     if (endpoint.IsBlank() || bucket.IsBlank() || objectId.IsBlank()||accessKeyId.IsBlank()|| accessKeySecret.IsBlank())
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Failed;
                         });
@@ -573,7 +573,7 @@ namespace Win115.ViewModels
                     var partETags = new List<PartETag>();
                     try
                     {
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Uploading;
                             task.Progress = partETags.Count * 1.0 / partCount;
@@ -597,7 +597,7 @@ namespace Win115.ViewModels
                                 var result = client.UploadPart(request);
                                 partETags.Add(result.PartETag);
                                 Debug.WriteLine("finish {0}/{1}", partETags.Count, partCount);
-                                App.DispatcherQueue?.TryEnqueue(() =>
+                                await App.DispatcherQueue!.EnqueueAsync(() =>
                                 {
                                     task.Progress = partETags.Count * 1.0 / partCount;
                                 });
@@ -621,7 +621,7 @@ namespace Win115.ViewModels
                         var result = client.CompleteMultipartUpload(completeMultipartUploadRequest);
                         Debug.WriteLine("complete multi part succeeded");
                         responseContent = GetCallbackResponse(result);
-                        App.DispatcherQueue?.TryEnqueue(() =>
+                        await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Completed;
                             task.Progress = 1;
@@ -648,14 +648,14 @@ namespace Win115.ViewModels
                 }
                 if (uploadRes.State == true)
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    App.DispatcherQueue!.TryEnqueue(() =>
                     {
                         App.ShowMessageBar($"上传成功", "信息", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Success, autoClose: TimeSpan.FromSeconds(5));
                     });
                 }
                 else
                 {
-                    App.DispatcherQueue?.TryEnqueue(() =>
+                    App.DispatcherQueue!.TryEnqueue(() =>
                     {
                         App.ShowMessageBar($"{uploadRes?.Message}", "错误", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
                     });

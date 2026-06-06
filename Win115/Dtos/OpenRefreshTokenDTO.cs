@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Win115.Dtos
 {
-    public record OpenRefreshTokenDTO
+    public class OpenRefreshTokenDTO
     {
         /// <summary>
         /// 用于访问资源接口的凭证

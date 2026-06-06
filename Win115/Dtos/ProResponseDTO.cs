@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace Win115.Dtos
 {
-    public record ProResponseDTO<T>
+    public class ProResponseDTO<T>
     {
         [JsonProperty("state")]
         public bool State { get; set; }
@@ -18,7 +18,7 @@ namespace Win115.Dtos
         public T? Data { get; set; }
     }
 
-    public record ProResponseDTO
+    public class ProResponseDTO
     {
         [JsonProperty("state")]
         public bool State { get; set; }
