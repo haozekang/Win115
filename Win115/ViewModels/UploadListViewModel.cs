@@ -1,13 +1,11 @@
 using Aliyun.OSS;
 using Aliyun.OSS.Common;
-using Aliyun.OSS.Model;
 using Aliyun.OSS.Util;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI;
 using LiteDB;
-using Newtonsoft.Json;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Utilities.Encoders;
 using RestSharp;
@@ -15,12 +13,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -34,7 +29,7 @@ using Win115.Enums;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
-using Windows.Media.Protection.PlayReady;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
@@ -248,7 +243,7 @@ namespace Win115.ViewModels
                     });
                     return;
                 }
-                dtoInitNoCallback = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadInitNoCallbackDTO>>(resInit.Content);
+                dtoInitNoCallback = JsonSerializer.Deserialize<ProResponseDTO<OpenUploadInitNoCallbackDTO>>(resInit.Content);
                 if (dtoInitNoCallback is null || !dtoInitNoCallback.State || dtoInitNoCallback.Data is null)
                 {
                     await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -294,7 +289,7 @@ namespace Win115.ViewModels
                         });
                         return;
                     }
-                    dtoInitNoCallback = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadInitNoCallbackDTO>>(resInit.Content);
+                    dtoInitNoCallback = JsonSerializer.Deserialize<ProResponseDTO<OpenUploadInitNoCallbackDTO>>(resInit.Content);
                     if (dtoInitNoCallback is null || !dtoInitNoCallback.State || dtoInitNoCallback.Data is null)
                     {
                         await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -317,7 +312,7 @@ namespace Win115.ViewModels
                     }
                     else if (fNoCallback.Status == 1)
                     {
-                        dtoInit = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadInitDTO>>(resInit.Content);
+                        dtoInit = JsonSerializer.Deserialize<ProResponseDTO<OpenUploadInitDTO>>(resInit.Content);
                         f = dtoInit?.Data;
                         return;
                     }
@@ -332,7 +327,7 @@ namespace Win115.ViewModels
                 }
                 else if (fNoCallback.Status == 1)
                 {
-                    dtoInit = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadInitDTO>>(resInit.Content);
+                    dtoInit = JsonSerializer.Deserialize<ProResponseDTO<OpenUploadInitDTO>>(resInit.Content);
                     f = dtoInit?.Data;
                 }
                 if (f is null)
@@ -354,7 +349,7 @@ namespace Win115.ViewModels
                 if (f.Callback is not null && f.Callback.CallbackVar is not null)
                 {
                     callback = f.Callback.Callback;
-                    callbackVars = JsonConvert.DeserializeObject<Dictionary<string, string>>(f.Callback.CallbackVar);
+                    callbackVars = JsonSerializer.Deserialize<Dictionary<string, string>>(f.Callback.CallbackVar);
                     await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
                         task.CallbackVar = callbackVars;
@@ -386,7 +381,7 @@ namespace Win115.ViewModels
                     });
                     return;
                 }
-                var dtoToken = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadGetTokenDTO>>(resToken.Content);
+                var dtoToken = JsonSerializer.Deserialize<ProResponseDTO<OpenUploadGetTokenDTO>>(resToken.Content);
                 if (dtoToken is null || !dtoToken.State || dtoToken.Data is null || dtoToken.Data.Endpoint.IsBlank())
                 {
                     await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -431,7 +426,7 @@ namespace Win115.ViewModels
                 // 普通文件上传(小于200M)
                 if (task.Size <= 209715200)
                 {
-                    var callbackDto = JsonConvert.DeserializeObject<AliyunOssCallbackDTO>(callback);
+                    var callbackDto = JsonSerializer.Deserialize<AliyunOssCallbackDTO>(callback);
                     if (callbackDto is null)
                     {
                         await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -478,7 +473,7 @@ namespace Win115.ViewModels
                         });
                         return;
                     }
-                    var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(resResume.Content);
+                    var dto = JsonSerializer.Deserialize<ProResponseDTO>(resResume.Content);
                     if (dto is null || dto.State != true)
                     {
                         await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -487,7 +482,7 @@ namespace Win115.ViewModels
                         });
                         return;
                     }
-                    var dtoResume = JsonConvert.DeserializeObject<ProResponseDTO<OpenUploadResumeDTO>>(resResume.Content);
+                    var dtoResume = JsonSerializer.Deserialize<ProResponseDTO<OpenUploadResumeDTO>>(resResume.Content);
                     if (dtoResume is null || dtoResume.Data is null || dtoResume.Data.Callback is null)
                     {
                         await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -508,8 +503,8 @@ namespace Win115.ViewModels
                     bucket = dtoResume.Data.Bucket;
                     objectId = dtoResume.Data.Object;
                     callback = dtoResume.Data.Callback.Callback;
-                    callbackVars = JsonConvert.DeserializeObject<Dictionary<string, string>>(dtoResume.Data.Callback.CallbackVar);
-                    var callbackDto = JsonConvert.DeserializeObject<AliyunOssCallbackDTO>(callback);
+                    callbackVars = JsonSerializer.Deserialize<Dictionary<string, string>>(dtoResume.Data.Callback.CallbackVar);
+                    var callbackDto = JsonSerializer.Deserialize<AliyunOssCallbackDTO>(callback);
                     if (callbackDto is null || callbackVars is null)
                     {
                         await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -641,7 +636,7 @@ namespace Win115.ViewModels
             try
             {
                 Debug.WriteLine($"===>res:{responseContent}");
-                var uploadRes = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(responseContent);
+                var uploadRes = JsonSerializer.Deserialize<ProResponseDTO>(responseContent);
                 if (uploadRes is null)
                 {
                     return;

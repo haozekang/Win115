@@ -1,29 +1,28 @@
-using Newtonsoft.Json;
-using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
     public class OpenUfileDownurlDTO
     {
-        [JsonProperty("file_name")]
+        [JsonPropertyName("file_name")]
         public string? FileName { get; set; }
 
-        [JsonProperty("file_size")]
+        [JsonPropertyName("file_size")]
         public string? FileSize { get; set; }
 
-        [JsonProperty("pick_code")]
+        [JsonPropertyName("pick_code")]
         public string? PickCode { get; set; }
 
-        [JsonProperty("sha1")]
+        [JsonPropertyName("sha1")]
         public string? Sha1 { get; set; }
 
-        [JsonProperty("url")]
+        [JsonPropertyName("url")]
         public UfileDownurlFileDataUrlDTO? Url { get; set; }
     }
 
     public class UfileDownurlFileDataUrlDTO
     {
-        [JsonProperty("url")]
+        [JsonPropertyName("url")]
         public string? Url { get; set; }
     }
 }

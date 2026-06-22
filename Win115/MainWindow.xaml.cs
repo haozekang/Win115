@@ -104,7 +104,7 @@ namespace Win115
                     MenuKeys.UploadList => typeof(UploadListPage),
                     MenuKeys.User => typeof(UserPage),
                     MenuKeys.Settings => typeof(SettingsPage),
-                    MenuKeys.SearchFiles => typeof(SettingsPage),
+                    MenuKeys.SearchFiles => typeof(SearchFilesPage),
                     _ => null
                 };
             }
@@ -190,10 +190,6 @@ namespace Win115
                     {
                         viewModel.NavigateToPage(typeof(UserPage));
                     }
-                    if (menu == MenuKeys.SearchFiles)
-                    {
-                        viewModel.NavigateToPage(typeof(SearchFilesPage));
-                    }
                     return;
                 }
                 RootNavigationView.SelectedItem = item;
@@ -254,6 +250,19 @@ namespace Win115
             await DispatcherQueue.EnqueueAsync(() =>
             {
                 ui.UpdatePathBar(paths);
+            });
+        }
+
+        internal async Task SelectedItemAndScrollIntoView(int index, MyFileItemModel item)
+        {
+            var vm = App.Resolve<MyFilesViewModel>();
+            if (vm is null || RootFrame.Content is not MyFilesPage ui)
+            {
+                return;
+            }
+            await DispatcherQueue.EnqueueAsync(() =>
+            {
+                ui.SelectedItemAndScrollIntoView(index, item);
             });
         }
     }

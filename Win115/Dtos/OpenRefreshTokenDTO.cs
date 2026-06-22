@@ -1,10 +1,4 @@
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
@@ -13,19 +7,19 @@ namespace Win115.Dtos
         /// <summary>
         /// 用于访问资源接口的凭证
         /// </summary>
-        [JsonProperty("access_token")]
+        [JsonPropertyName("access_token")]
         public string? AccessToken { get; set; }
 
         /// <summary>
         /// 用于刷新 access_token，有效期1年
         /// </summary>
-        [JsonProperty("refresh_token")]
+        [JsonPropertyName("refresh_token")]
         public string? RefreshToken { get; set; }
 
         /// <summary>
         /// access_token 有效期，单位秒
         /// </summary>
-        [JsonProperty("expires_in")]
+        [JsonPropertyName("expires_in")]
         public int ExpiresIn { get; set; }
     }
 }

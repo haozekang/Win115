@@ -8,11 +8,9 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
@@ -22,7 +20,7 @@ using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
 using Win115.Views;
-using static QRCoder.PayloadGenerator;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
@@ -47,6 +45,7 @@ namespace Win115.ViewModels
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uEBD3" }, Content = "云下载", Tag = MenuKeys.CloudDownload },
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE896" }, Content = "下载列表", Tag = MenuKeys.DownloadList },
             new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uE898" }, Content = "上传列表", Tag = MenuKeys.UploadList },
+            new NavigationViewItem { Icon = new FontIcon() { Glyph = "\uEDE4" }, Content = "搜索", Tag = MenuKeys.SearchFiles },
         };
 
         [ObservableProperty]
@@ -101,7 +100,7 @@ namespace Win115.ViewModels
                     return;
                 }
                 await LogHelper.Trace(resUserInfo.Content);
-                var state = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(resUserInfo.Content!);
+                var state = JsonSerializer.Deserialize<ProResponseDTO>(resUserInfo.Content!);
                 if (state is null)
                 {
                     return;
@@ -122,13 +121,13 @@ namespace Win115.ViewModels
                         return;
                     }
                 }
-                var userInfo = JsonConvert.DeserializeObject<ProResponseDTO<OpenUserInfoDTO>>(resUserInfo.Content!);
+                var userInfo = JsonSerializer.Deserialize<ProResponseDTO<OpenUserInfoDTO>>(resUserInfo.Content!);
                 if (userInfo is null || userInfo.Data is null)
                 {
                     return;
                 }
                 um.IsLogin = true;
-                um.UserId = userInfo.Data.UserId!;
+                um.UserId = $"{userInfo.Data.UserId}";
                 um.UserName = userInfo.Data.UserName!;
                 um.FaceS = userInfo.Data.UserFaceS!;
                 um.FaceM = userInfo.Data.UserFaceM!;
@@ -270,12 +269,12 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
             if (dto is null)
             {
                 return;
             }
-            if (!dto.State || dto.Data is null)
+            if (!dto.State)
             {
                 return;
             }

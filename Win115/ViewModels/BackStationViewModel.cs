@@ -4,19 +4,17 @@ using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI.Collections;
 using LiteDB;
 using Microsoft.UI.Xaml.Controls;
-using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml.XPath;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
 using Win115.Enums;
 using Win115.Models;
 using Win115.Properties;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
@@ -108,7 +106,7 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
             if (dto is null)
             {
                 return;
@@ -150,7 +148,7 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
             if (dto is null)
             {
                 return;
@@ -191,7 +189,7 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
             if (dto is null)
             {
                 return;

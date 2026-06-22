@@ -225,4 +225,20 @@
     <value>/open/offline/torrent</value>
     <comment>解析BT种子</comment>
   </data>
+  <data name="OpenVideoHistory" xml:space="preserve">
+    <value>/open/video/history</value>
+    <comment>记忆(POST)/获取(GET)视频播放进度</comment>
+  </data>
+  <data name="OpenVideoSubtitle" xml:space="preserve">
+    <value>/open/video/subtitle</value>
+    <comment>视频字幕列表</comment>
+  </data>
+  <data name="OpenVideoPush" xml:space="preserve">
+    <value>/open/video/video_push</value>
+    <comment>提交视频转码</comment>
+  </data>
+  <data name="OpenVideoPlay" xml:space="preserve">
+    <value>/open/video/play</value>
+    <comment>获取视频在线播放地址</comment>
+  </data>
 </root>

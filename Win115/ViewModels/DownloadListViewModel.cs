@@ -2,10 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI;
-using Downloader;
 using LiteDB;
-using Microsoft.UI.Dispatching;
-using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -13,14 +10,11 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using System.Xml.XPath;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
 using Win115.Entities;
@@ -29,6 +23,7 @@ using Win115.Handlers;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
@@ -315,7 +310,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO<Dictionary<string, OpenUfileDownurlDTO?>?>>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO<Dictionary<string, OpenUfileDownurlDTO?>?>>(res.Content);
                 if (dto is null || !dto.State || dto.Data is null || dto.Data.Count == 0)
                 {
                     return;

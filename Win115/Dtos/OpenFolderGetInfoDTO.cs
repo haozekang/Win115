@@ -1,5 +1,4 @@
-using Newtonsoft.Json;
-using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
@@ -8,97 +7,100 @@ namespace Win115.Dtos
         /// <summary>
         /// 包含文件总数量
         /// </summary>
-        [JsonProperty("count")]
-        public string? Count { get; set; }
+        [JsonPropertyName("count")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? Count { get; set; }
 
         /// <summary>
         /// 文件(夹)总大小
         /// </summary>
-        [JsonProperty("size")]
+        [JsonPropertyName("size")]
         public string? Size { get; set; }
 
         /// <summary>
         /// 文件(夹)总大小(字节单位)
         /// </summary>
-        [JsonProperty("size_byte")]
+        [JsonPropertyName("size_byte")]
         public long? SizeByte { get; set; }
 
         /// <summary>
         /// 包含文件夹总数量
         /// </summary>
-        [JsonProperty("folder_count")]
-        public string? FolderCount { get; set; }
+        [JsonPropertyName("folder_count")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? FolderCount { get; set; }
 
         /// <summary>
         /// 视频时长；-1：正在统计，其他数值为视频时长的数值(单位秒)
         /// </summary>
-        [JsonProperty("play_long")]
+        [JsonPropertyName("play_long")]
         public long? PlayLong { get; set; }
 
         /// <summary>
         /// 是否开启展示视频时长
         /// </summary>
-        [JsonProperty("show_play_long")]
+        [JsonPropertyName("show_play_long")]
         public long? ShowPlayLong { get; set; }
 
         /// <summary>
         /// 上传时间
         /// </summary>
-        [JsonProperty("ptime")]
+        [JsonPropertyName("ptime")]
         public string? Ptime { get; set; }
 
         /// <summary>
         /// 修改时间
         /// </summary>
-        [JsonProperty("utime")]
+        [JsonPropertyName("utime")]
         public string? Utime { get; set; }
 
         /// <summary>
         /// 文件名
         /// </summary>
-        [JsonProperty("file_name")]
+        [JsonPropertyName("file_name")]
         public string? FileName { get; set; }
 
         /// <summary>
         /// 文件提取码
         /// </summary>
-        [JsonProperty("pick_code")]
+        [JsonPropertyName("pick_code")]
         public string? PickCode { get; set; }
 
         /// <summary>
         /// SHA1值
         /// </summary>
-        [JsonProperty("sha1")]
+        [JsonPropertyName("sha1")]
         public string? Sha1 { get; set; }
 
         /// <summary>
         /// 文件(夹)ID
         /// </summary>
-        [JsonProperty("file_id")]
-        public string? FileId { get; set; }
+        [JsonPropertyName("file_id")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? FileId { get; set; }
 
         /// <summary>
         /// 是否星标
         /// </summary>
-        [JsonProperty("is_mark")]
+        [JsonPropertyName("is_mark")]
         public string? IsMark { get; set; }
 
         /// <summary>
         /// 文件(夹)最近打开时间
         /// </summary>
-        [JsonProperty("open_time")]
+        [JsonPropertyName("open_time")]
         public long? OpenTime { get; set; }
 
         /// <summary>
         /// 文件属性；1：文件；0：文件夹
         /// </summary>
-        [JsonProperty("file_category")]
+        [JsonPropertyName("file_category")]
         public string? FileCategory { get; set; }
 
         /// <summary>
         /// 文件(夹)所在的路径
         /// </summary>
-        [JsonProperty("paths")]
+        [JsonPropertyName("paths")]
         public OpenFolderGetInfoPathDTO[]? Paths { get; set; }
     }
 
@@ -110,13 +112,14 @@ namespace Win115.Dtos
         /// <summary>
         /// 父目录ID
         /// </summary>
-        [JsonProperty("file_id")]
+        [JsonPropertyName("file_id")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public long? FileId { get; set; }
 
         /// <summary>
         /// 父目录名称
         /// </summary>
-        [JsonProperty("file_name")]
+        [JsonPropertyName("file_name")]
         public string? FileName { get; set; }
     }
 }

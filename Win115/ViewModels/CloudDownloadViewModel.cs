@@ -4,10 +4,16 @@ using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.WinUI.Collections;
 using LiteDB;
 using Microsoft.UI.Xaml.Controls;
+using Newtonsoft.Json;
+using RestSharp;
 using System;
 using System.Threading.Tasks;
+using Tanovo.ExtensionMethods;
+using Win115.Dtos;
 using Win115.Enums;
+using Win115.Helpers;
 using Win115.Models;
+using Win115.Properties;
 
 namespace Win115.ViewModels
 {
@@ -60,6 +66,14 @@ namespace Win115.ViewModels
         [RelayCommand]
         private async Task ItemDetail(CloudTaskItemModel item)
         {
+            if (item is null || item.DeleteFileId.IsBlank())
+            {
+                await App.ShowMessageBar($"文件Id不存在！", "警告", InfoBarSeverity.Warning, autoClose: TimeSpan.FromSeconds(3));
+                return;
+            }
+            var vm = App.Resolve<MyFilesViewModel>();
+            _ = App.JumpPage(MenuKeys.MyFiles);
+            await vm.JumpToFolderCommand.ExecuteAsync(item.DeleteFileId);
         }
     }
 }

@@ -2,20 +2,15 @@ using Autofac;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging.Messages;
-using CommunityToolkit.WinUI;
 using CommunityToolkit.WinUI.Collections;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.X509;
 using RestSharp;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
@@ -25,12 +20,10 @@ using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
 using Win115.Views;
-using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
-using static Aliyun.OSS.Model.LiveChannelStat;
-using static System.Net.Mime.MediaTypeNames;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
@@ -131,9 +124,9 @@ namespace Win115.ViewModels
             User = user;
             System = system;
             _downloadListViewModel = downloadListViewModel;
-            FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(-1, SortDirection, SortField));
-            ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(-1, SortDirection, SortField));
-            MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(-1, SortDirection, SortField));
+            FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(-1, SortDirection, SortField), 100);
+            ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(-1, SortDirection, SortField), 100);
+            MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(-1, SortDirection, SortField), 100);
             SelectedFileItems = new();
             Messenger.Register<ObservableRecipient, ValueChangedMessage<WeakMessengerTypes>, string>(this, nameof(MainViewModel), (r, msgType) =>
             {
@@ -185,7 +178,7 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            var state = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+            var state = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
             if (state is null || !state.State)
             {
                 return;
@@ -193,7 +186,7 @@ namespace Win115.ViewModels
             OpenFolderGetInfoDTO? info = null;
             try
             {
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO<OpenFolderGetInfoDTO?>>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO<OpenFolderGetInfoDTO?>>(res.Content);
                 info = dto?.Data;
             }
             catch (Exception e)
@@ -354,9 +347,9 @@ namespace Win115.ViewModels
                 IsBusy = true;
                 await App.UpdatePathBar();
                 var id = PathItems.Last().Id;
-                FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(id, SortDirection, SortField));
-                ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(id, SortDirection, SortField));
-                MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(id, SortDirection, SortField));
+                FileItems = new IncrementalLoadingCollection<MyFileIncrementalSource, MyFileItemModel>(new MyFileIncrementalSource(id, SortDirection, SortField), 100);
+                ImageFileItems = new IncrementalLoadingCollection<MyFileImageIncrementalSource, MyFileItemModel>(new MyFileImageIncrementalSource(id, SortDirection, SortField), 100);
+                MediaFileItems = new IncrementalLoadingCollection<MyFileMediaIncrementalSource, MyFileItemModel>(new MyFileMediaIncrementalSource(id, SortDirection, SortField), 100);
             }
             catch (Exception ex)
             {
@@ -450,7 +443,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO<OpenFolderAddDTO>>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO<OpenFolderAddDTO>>(res.Content);
                 if (dto is null || !dto.State || dto.Data is null)
                 {
                     return;
@@ -660,7 +653,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
                 if (dto is null || !dto.State)
                 {
                     if (dto?.Message.IsNotBlank() == true)
@@ -734,7 +727,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
                 if (dto is null || !dto.State)
                 {
                     if (dto?.Message.IsNotBlank() == true)
@@ -831,7 +824,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
                 if (dto is null || !dto.State)
                 {
                     return;
@@ -888,7 +881,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO<string[]?>>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO<string[]?>>(res.Content);
                 if (dto is null || !dto.State || dto.Data is null)
                 {
                     return;
@@ -898,6 +891,79 @@ namespace Win115.ViewModels
             catch (Exception ex)
             {
                 await LogHelper.Error(ex);
+            }
+        }
+
+        /// <summary>
+        /// 直接跳转进入指定目录，并选中文件
+        /// </summary>
+        [RelayCommand]
+        public async Task JumpToFolder(object fileId)
+        {
+            if (!User.IsLogin)
+            {
+                return;
+            }
+            try
+            {
+                var req = new RestRequest(ApiResource.OpenFolderGetInfo);
+                req.AddQueryParameter("file_id", $"{fileId}");
+                var res = await App.ProApiClient.GetAsync(req);
+                if (!res.IsSuccessful || res.Content.IsBlank())
+                {
+                    return;
+                }
+                var state = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
+                if (state is null || !state.State)
+                {
+                    if (state?.Message.IsNotBlank() == true)
+                    {
+                        await App.ShowMessageBar(state.Message, "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                    }
+                    return;
+                }
+                OpenFolderGetInfoDTO? info = null;
+                try
+                {
+                    var dto = JsonSerializer.Deserialize<ProResponseDTO<OpenFolderGetInfoDTO?>>(res.Content);
+                    info = dto?.Data;
+                }
+                catch (Exception e)
+                {
+                    await LogHelper.Error(e);
+                }
+                if (info is null || info.Paths is null || info.Paths.Length == 0)
+                {
+                    await App.ShowMessageBar("详情获取失败！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                    return;
+                }
+                PathItems.Clear();
+                foreach (var p in info.Paths)
+                {
+                    PathItems.Add(new SelectOptionItem(p.FileId!.Value, p.FileName!));
+                }
+                await RefreshFiles();
+                if (!FileItems.Any(x => x.Id == $"{fileId}"))
+                {
+                    await FileItems.LoadMoreItemsAsync(100);
+                    for (; FileItems.HasMoreItems; await FileItems.LoadMoreItemsAsync(100))
+                    {
+                        if (FileItems.Any(x => x.Id == $"{fileId}"))
+                        {
+                            break;
+                        }
+                    }
+                }
+                var find = FileItems.Where(x => x.Id == $"{fileId}").FirstOrDefault();
+                if (find is null)
+                {
+                    return;
+                }
+                var index = FileItems.IndexOf(find);
+                _ = App.SelectedItemAndScrollIntoView(index, find);
+            }
+            catch
+            {
             }
         }
 

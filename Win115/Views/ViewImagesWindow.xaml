@@ -39,7 +39,6 @@
             <TitleBar.IconSource>
                 <BitmapIconSource UriSource="ms-appx:///Assets/favicon.png" />
             </TitleBar.IconSource>
-            <Grid />
             <TitleBar.RightHeader>
                 <StackPanel
                     x:Name="RightHeaderPanel"

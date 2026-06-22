@@ -302,5 +302,41 @@ namespace Win115.Properties {
                 return ResourceManager.GetString("OpenUserInfo", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   查找类似 /open/video/history 的本地化字符串。
+        /// </summary>
+        internal static string OpenVideoHistory {
+            get {
+                return ResourceManager.GetString("OpenVideoHistory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/video/play 的本地化字符串。
+        /// </summary>
+        internal static string OpenVideoPlay {
+            get {
+                return ResourceManager.GetString("OpenVideoPlay", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/video/video_push 的本地化字符串。
+        /// </summary>
+        internal static string OpenVideoPush {
+            get {
+                return ResourceManager.GetString("OpenVideoPush", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 /open/video/subtitle 的本地化字符串。
+        /// </summary>
+        internal static string OpenVideoSubtitle {
+            get {
+                return ResourceManager.GetString("OpenVideoSubtitle", resourceCulture);
+            }
+        }
     }
 }

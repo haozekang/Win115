@@ -1,8 +1,6 @@
 using CommunityToolkit.WinUI;
 using LiteDB;
 using Microsoft.UI.Xaml.Controls;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.Ocsp;
 using Org.BouncyCastle.Security;
 using RestSharp;
 using System;
@@ -14,6 +12,7 @@ using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
 using Win115.ViewModels;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -53,12 +52,12 @@ namespace Win115.Views
                 {
                     return;
                 }
-                var resDto = JsonConvert.DeserializeObject<ResponseDTO>(res.Content); 
+                var resDto = JsonSerializer.Deserialize<ResponseDTO>(res.Content); 
                 if (resDto is null || resDto.Code != 0 || resDto.State != 1)
                 {
                     return;
                 }
-                var qrDto = JsonConvert.DeserializeObject<ResponseDTO<OpenAuthDeviceCodeDTO>>(res.Content);
+                var qrDto = JsonSerializer.Deserialize<ResponseDTO<OpenAuthDeviceCodeDTO>>(res.Content);
                 if (qrDto is null || qrDto.Data is null)
                 {
                     return;
@@ -129,7 +128,7 @@ namespace Win115.Views
                 reqDoLogin.AlwaysMultipartFormData = true;
 
                 var resDoLogin = await App.LoginClient.PostAsync(reqDoLogin);
-                var tokenInfo = JsonConvert.DeserializeObject<ResponseDTO<OpenDeviceCodeToTokenDTO>>(resDoLogin.Content!);
+                var tokenInfo = JsonSerializer.Deserialize<ResponseDTO<OpenDeviceCodeToTokenDTO>>(resDoLogin.Content!);
                 if (tokenInfo is null || tokenInfo.Data is null
                     || tokenInfo.Data.AccessToken is null
                     || tokenInfo.Data.ExpiresIn == 0
@@ -158,13 +157,13 @@ namespace Win115.Views
                     return;
                 }
                 await LogHelper.Trace(resUserInfo.Content);
-                var userInfo = JsonConvert.DeserializeObject<ProResponseDTO<OpenUserInfoDTO>>(resUserInfo.Content!);
+                var userInfo = JsonSerializer.Deserialize<ProResponseDTO<OpenUserInfoDTO>>(resUserInfo.Content!);
                 if (userInfo is null || userInfo.Data is null)
                 {
                     return;
                 }
                 um.IsLogin = true;
-                um.UserId = userInfo.Data.UserId!;
+                um.UserId = $"{userInfo.Data.UserId}";
                 um.UserName = userInfo.Data.UserName!;
                 um.FaceS = userInfo.Data.UserFaceS!;
                 um.FaceM = userInfo.Data.UserFaceM!;

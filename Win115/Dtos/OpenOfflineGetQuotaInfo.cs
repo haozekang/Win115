@@ -1,5 +1,4 @@
-using Newtonsoft.Json;
-using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
@@ -8,13 +7,13 @@ namespace Win115.Dtos
         /// <summary>
         /// 用户总配额数量
         /// </summary>
-        [JsonProperty("count")]
+        [JsonPropertyName("count")]
         public long? Count { get; set; }
 
         /// <summary>
         /// 用户总剩余配额数量
         /// </summary>
-        [JsonProperty("surplus")]
+        [JsonPropertyName("surplus")]
         public long? Surplus { get; set; }
     }
 }

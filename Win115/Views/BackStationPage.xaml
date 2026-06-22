@@ -27,6 +27,12 @@
             OverflowButtonVisibility="Collapsed">
             <AppBarButton
                 Width="45"
+                Command="{x:Bind viewModel.RefreshFilesCommand}"
+                Icon="Refresh"
+                IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
+                ToolTipService.ToolTip="刷新列表" />
+            <AppBarButton
+                Width="45"
                 Command="{x:Bind viewModel.RecycleSelectedCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE81C;'}"
                 IsEnabled="{x:Bind viewModel.HasSelectedItems, Mode=OneWay}"

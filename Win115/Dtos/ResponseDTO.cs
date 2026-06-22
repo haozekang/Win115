@@ -1,38 +1,37 @@
-using Newtonsoft.Json;
-using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
     public class ResponseDTO
     {
-        [JsonProperty("state")]
+        [JsonPropertyName("state")]
         public int State { get; set; }
 
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string? Message { get; set; }
     }
 
     public class ResponseDTO<T>
     {
-        [JsonProperty("state")]
+        [JsonPropertyName("state")]
         public int State { get; set; }
 
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string? Message { get; set; }
 
-        [JsonProperty("error")]
+        [JsonPropertyName("error")]
         public string? Error { get; set; }
 
-        [JsonProperty("errno")]
+        [JsonPropertyName("errno")]
         public int ErrNo { get; set; }
 
-        [JsonProperty("data")]
+        [JsonPropertyName("data")]
         public T? Data { get; set; }
     }
 }

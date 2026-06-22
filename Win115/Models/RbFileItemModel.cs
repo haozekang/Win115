@@ -1,25 +1,17 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using LiteDB;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Tsp;
 using RestSharp;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
-using Win115.Entities;
 using Win115.Helpers;
 using Win115.Properties;
 using Win115.ViewModels;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.Models
 {
@@ -106,7 +98,7 @@ namespace Win115.Models
             {
                 return;
             }
-            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
             if (dto is null)
             {
                 return;
@@ -131,7 +123,7 @@ namespace Win115.Models
             {
                 return;
             }
-            var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+            var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
             if (dto is null)
             {
                 return;

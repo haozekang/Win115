@@ -91,7 +91,7 @@
                                 Padding="5"
                                 Command="{x:Bind CopyUrlCommand}"
                                 Foreground="{ThemeResource TextSelectionHighlightColorThemeBrush}"
-                                ToolTipService.ToolTip="复制">
+                                ToolTipService.ToolTip="复制下载链接">
                                 <Button.Content>
                                     <FontIcon FontSize="13" Glyph="&#xE8C8;" />
                                 </Button.Content>

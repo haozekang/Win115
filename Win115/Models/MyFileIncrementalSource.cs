@@ -1,16 +1,15 @@
 using CommunityToolkit.WinUI.Collections;
 using Microsoft.UI.Xaml.Controls;
-using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.XPath;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
 using Win115.Properties;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.Models
 {
@@ -53,7 +52,7 @@ namespace Win115.Models
             {
                 return Enumerable.Empty<MyFileItemModel>();
             }
-            var dto = JsonConvert.DeserializeObject<OpenUfileFilesDTO>(res.Content);
+            var dto = JsonSerializer.Deserialize<OpenUfileFilesDTO>(res.Content);
             if (dto is null)
             {
                 App.DispatcherQueue?.TryEnqueue(async() => 

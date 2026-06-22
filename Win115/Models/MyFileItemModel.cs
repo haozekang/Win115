@@ -9,12 +9,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Win115.Helpers;
+using Windows.Media;
 
 namespace Win115.Models
 {
     public partial class MyFileItemModel : ObservableObject
     {
         private static List<string> imageExtensions = ["png", "jpg", "jpeg", "gif"];
+        private static List<string> mediaExtensions = ["mp4", "avi", "mkv"];
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ThumbImg))]
@@ -191,11 +193,15 @@ namespace Win115.Models
 
         public bool IsImage => imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? true : false;
 
-        public bool IsIcon => !imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? true : false;
+        public bool IsMedia => mediaExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? true : false;
 
-        public Visibility IsImageVisibility => imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? Visibility.Visible : Visibility.Collapsed;
+        public bool IsIcon => !IsImage && !IsMedia ? true : false;
 
-        public Visibility IsIconVisibility => !imageExtensions.Any(x => x.Equals(FileExtension, StringComparison.CurrentCultureIgnoreCase)) ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IsImageVisibility => IsImage ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility IsMediaVisibility => IsMedia ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility IsIconVisibility => IsIcon ? Visibility.Visible : Visibility.Collapsed;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CreateTimeText))]

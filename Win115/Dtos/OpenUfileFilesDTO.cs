@@ -1,5 +1,4 @@
-using Newtonsoft.Json;
-using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
@@ -8,76 +7,79 @@ namespace Win115.Dtos
         /// <summary>
         /// 排序
         /// </summary>
-        [JsonProperty("order")]
+        [JsonPropertyName("order")]
         public string? Order { get; set; }
 
-        [JsonProperty("fields")]
+        [JsonPropertyName("fields")]
         public string? Fields { get; set; }
 
-        [JsonProperty("stdir")]
+        [JsonPropertyName("stdir")]
         public long? STDir { get; set; }
 
-        [JsonProperty("cur")]
+        [JsonPropertyName("cur")]
         public long? Cur { get; set; }
 
-        [JsonProperty("path")]
+        [JsonPropertyName("path")]
         public FPathDTO[]? Paths { get; set; }
 
-        [JsonProperty("suffix")]
+        [JsonPropertyName("suffix")]
         public string? Suffix { get; set; }
 
-        [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public int? Type { get; set; }
 
-        [JsonProperty("star")]
+        [JsonPropertyName("star")]
         public int? Star { get; set; }
 
-        [JsonProperty("record_open_time")]
+        [JsonPropertyName("record_open_time")]
         public string? RecordOpenTime { get; set; }
 
-        [JsonProperty("hide_data")]
+        [JsonPropertyName("hide_data")]
         public string? HideData { get; set; }
 
-        [JsonProperty("sys_dir")]
+        [JsonPropertyName("sys_dir")]
         public string? SysDir { get; set; }
 
-        [JsonProperty("max_size")]
+        [JsonPropertyName("max_size")]
         public long? MaxSize { get; set; }
 
-        [JsonProperty("min_size")]
+        [JsonPropertyName("min_size")]
         public long? MinSize { get; set; }
 
-        [JsonProperty("is_asc")]
+        [JsonPropertyName("is_asc")]
         public int? IsAsc { get; set; }
 
-        [JsonProperty("cid")]
+        [JsonPropertyName("cid")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public long? CId { get; set; }
 
-        [JsonProperty("aid")]
-        public string? AId { get; set; }
+        [JsonPropertyName("aid")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? AId { get; set; }
 
-        [JsonProperty("limit")]
+        [JsonPropertyName("limit")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public long? Limit { get; set; }
 
-        [JsonProperty("offset")]
+        [JsonPropertyName("offset")]
         public long? Offset { get; set; }
 
-        [JsonProperty("sys_count")]
+        [JsonPropertyName("sys_count")]
         public long? SysCount { get; set; }
 
-        [JsonProperty("count")]
+        [JsonPropertyName("count")]
         public long? Count { get; set; }
 
-        [JsonProperty("data")]
+        [JsonPropertyName("data")]
         public FDataDTO[]? Data { get; set; }
 
-        [JsonProperty("state")]
+        [JsonPropertyName("state")]
         public bool State { get; set; }
 
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string? Message { get; set; }
     }
 
@@ -86,163 +88,163 @@ namespace Win115.Dtos
         /// <summary>
         /// 文件ID
         /// </summary>
-        [JsonProperty("fid")]
+        [JsonPropertyName("fid")]
         public string? FId { get; set; }
 
         /// <summary>
         /// 文件的状态，aid 的别名。1 正常，7 删除(回收站)，120 彻底删除
         /// </summary>
-        [JsonProperty("aid")]
+        [JsonPropertyName("aid")]
         public string? AId { get; set; }
 
         /// <summary>
         /// 父目录ID
         /// </summary>
-        [JsonProperty("pid")]
+        [JsonPropertyName("pid")]
         public string? PId { get; set; }
 
         /// <summary>
         /// 文件分类。0 文件夹，1 文件
         /// </summary>
-        [JsonProperty("fc")]
+        [JsonPropertyName("fc")]
         public string? FC { get; set; }
 
         /// <summary>
         /// 文件(夹)名称
         /// </summary>
-        [JsonProperty("fn")]
+        [JsonPropertyName("fn")]
         public string? FN { get; set; }
 
         /// <summary>
         /// 文件夹封面
         /// </summary>
-        [JsonProperty("fco")]
+        [JsonPropertyName("fco")]
         public string? FCO { get; set; }
 
         /// <summary>
         /// 是否星标，1：星标
         /// </summary>
-        [JsonProperty("ism")]
+        [JsonPropertyName("ism")]
         public string? IsM { get; set; }
 
         /// <summary>
         /// 是否加密；1：加密
         /// </summary>
-        [JsonProperty("isp")]
+        [JsonPropertyName("isp")]
         public int? IsP { get; set; }
 
         /// <summary>
         /// 文件提取码
         /// </summary>
-        [JsonProperty("pc")]
+        [JsonPropertyName("pc")]
         public string? PC { get; set; }
 
         /// <summary>
         /// 修改时间
         /// </summary>
-        [JsonProperty("upt")]
+        [JsonPropertyName("upt")]
         public long? UpT { get; set; }
 
         /// <summary>
         /// 修改时间
         /// </summary>
-        [JsonProperty("uet")]
+        [JsonPropertyName("uet")]
         public long? UeT { get; set; }
 
         /// <summary>
         /// 上传时间
         /// </summary>
-        [JsonProperty("uppt")]
+        [JsonPropertyName("uppt")]
         public long? UppT { get; set; }
 
-        [JsonProperty("cm")]
+        [JsonPropertyName("cm")]
         public long? CM { get; set; }
 
         /// <summary>
         /// 文件备注
         /// </summary>
-        [JsonProperty("fdesc")]
+        [JsonPropertyName("fdesc")]
         public string? FDesc { get; set; }
 
         /// <summary>
         /// 文件备注
         /// </summary>
-        [JsonProperty("ispl")]
+        [JsonPropertyName("ispl")]
         public int? IsPl { get; set; }
 
         /// <summary>
         /// 文件标签
         /// </summary>
-        [JsonProperty("fl")]
+        [JsonPropertyName("fl")]
         public FLabelDTO[]? FL { get; set; }
 
         /// <summary>
         /// sha1值
         /// </summary>
-        [JsonProperty("sha1")]
+        [JsonPropertyName("sha1")]
         public string? Sha1 { get; set; }
 
         /// <summary>
         /// 文件大小
         /// </summary>
-        [JsonProperty("fs")]
+        [JsonPropertyName("fs")]
         public long? FS { get; set; }
 
         /// <summary>
         /// 文件状态 0/2 未上传完成，1 已上传完成
         /// </summary>
-        [JsonProperty("fta")]
+        [JsonPropertyName("fta")]
         public string? FTA { get; set; }
 
         /// <summary>
         /// 文件后缀名
         /// </summary>
-        [JsonProperty("ico")]
+        [JsonPropertyName("ico")]
         public string? ICO { get; set; }
 
         /// <summary>
         /// 音频长度
         /// </summary>
-        [JsonProperty("fatr")]
+        [JsonPropertyName("fatr")]
         public string? FATR { get; set; }
 
         /// <summary>
         /// 是否为视频
         /// </summary>
-        [JsonProperty("isv")]
+        [JsonPropertyName("isv")]
         public int? IsV { get; set; }
 
         /// <summary>
         /// 视频清晰度；1:标清 2:高清 3:超清 4:1080P 5:4k;100:原画
         /// </summary>
-        [JsonProperty("def")]
+        [JsonPropertyName("def")]
         public int? Def { get; set; }
 
         /// <summary>
         /// 视频清晰度；1:标清 2:高清 3:超清 4:1080P 5:4k;100:原画
         /// </summary>
-        [JsonProperty("def2")]
+        [JsonPropertyName("def2")]
         public int? Def2 { get; set; }
 
         /// <summary>
         /// 音视频时长
         /// </summary>
-        [JsonProperty("play_long")]
+        [JsonPropertyName("play_long")]
         public long? PlayLong { get; set; }
 
-        [JsonProperty("v_img")]
+        [JsonPropertyName("v_img")]
         public string? VImg { get; set; }
 
         /// <summary>
         /// 图片缩略图
         /// </summary>
-        [JsonProperty("thumb")]
+        [JsonPropertyName("thumb")]
         public string? Thumb { get; set; }
 
         /// <summary>
         /// 原图地址
         /// </summary>
-        [JsonProperty("uo")]
+        [JsonPropertyName("uo")]
         public string? UO { get; set; }
     }
 
@@ -251,67 +253,71 @@ namespace Win115.Dtos
         /// <summary>
         /// 文件标签id
         /// </summary>
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string? Id { get; set; }
 
         /// <summary>
         /// 文件标签名称
         /// </summary>
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
 
         /// <summary>
         /// 文件标签排序
         /// </summary>
-        [JsonProperty("sort")]
+        [JsonPropertyName("sort")]
         public string? Sort { get; set; }
 
         /// <summary>
         /// 文件标签颜色
         /// </summary>
-        [JsonProperty("color")]
+        [JsonPropertyName("color")]
         public string? Color { get; set; }
 
         /// <summary>
         /// 文件标签类型；0：最近使用；1：非最近使用；2：为默认标签
         /// </summary>
-        [JsonProperty("is_default")]
+        [JsonPropertyName("is_default")]
         public int? IsDefault { get; set; }
 
         /// <summary>
         /// 文件标签更新时间
         /// </summary>
-        [JsonProperty("update_time")]
+        [JsonPropertyName("update_time")]
         public long? UpdateTime { get; set; }
 
         /// <summary>
         /// 文件标签创建时间
         /// </summary>
-        [JsonProperty("create_time")]
+        [JsonPropertyName("create_time")]
         public long? CreateTime { get; set; }
     }
 
     public class FPathDTO
     {
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
 
-        [JsonProperty("aid")]
-        public string? AId { get; set; }
+        [JsonPropertyName("aid")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? AId { get; set; }
 
-        [JsonProperty("cid")]
-        public string? CId { get; set; }
+        [JsonPropertyName("cid")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? CId { get; set; }
 
-        [JsonProperty("pid")]
-        public string? PId { get; set; }
+        [JsonPropertyName("pid")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? PId { get; set; }
 
-        [JsonProperty("isp")]
-        public string? IsP { get; set; }
+        [JsonPropertyName("isp")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? IsP { get; set; }
 
-        [JsonProperty("p_cid")]
+        [JsonPropertyName("p_cid")]
         public string? PCId { get; set; }
 
-        [JsonProperty("fv")]
+        [JsonPropertyName("fv")]
         public string? FV { get; set; }
     }
 }

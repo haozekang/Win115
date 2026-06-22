@@ -1,32 +1,31 @@
-using Newtonsoft.Json;
-using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
     public class ProResponseDTO<T>
     {
-        [JsonProperty("state")]
+        [JsonPropertyName("state")]
         public bool State { get; set; }
 
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string? Message { get; set; }
 
-        [JsonProperty("data")]
+        [JsonPropertyName("data")]
         public T? Data { get; set; }
     }
 
     public class ProResponseDTO
     {
-        [JsonProperty("state")]
+        [JsonPropertyName("state")]
         public bool State { get; set; }
 
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string? Message { get; set; }
     }
 }

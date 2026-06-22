@@ -1,5 +1,4 @@
-using Newtonsoft.Json;
-using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
@@ -8,37 +7,37 @@ namespace Win115.Dtos
         /// <summary>
         /// 上传任务唯一ID,用于续传
         /// </summary>
-        [JsonProperty("pick_code")]
+        [JsonPropertyName("pick_code")]
         public string? PickCode { get; set; }
 
         /// <summary>
         /// 文件上传目标约定
         /// </summary>
-        [JsonProperty("target")]
+        [JsonPropertyName("target")]
         public string? Target { get; set; }
 
         /// <summary>
         /// 接口版本
         /// </summary>
-        [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public string? Version { get; set; }
 
         /// <summary>
         /// 上传的bucket
         /// </summary>
-        [JsonProperty("bucket")]
+        [JsonPropertyName("bucket")]
         public string? Bucket { get; set; }
 
         /// <summary>
         /// OSS objectID
         /// </summary>
-        [JsonProperty("object")]
+        [JsonPropertyName("object")]
         public string? Object { get; set; }
 
         /// <summary>
         /// OSS objectID
         /// </summary>
-        [JsonProperty("callback")]
+        [JsonPropertyName("callback")]
         public OpenUploadResumeCallbackDTO? Callback { get; set; }
     }
 
@@ -47,13 +46,13 @@ namespace Win115.Dtos
         /// <summary>
         /// 上传完回调信息
         /// </summary>
-        [JsonProperty("callback")]
+        [JsonPropertyName("callback")]
         public string? Callback { get; set; }
 
         /// <summary>
         /// 上传完回调参数
         /// </summary>
-        [JsonProperty("callback_var")]
+        [JsonPropertyName("callback_var")]
         public string? CallbackVar { get; set; }
     }
 }

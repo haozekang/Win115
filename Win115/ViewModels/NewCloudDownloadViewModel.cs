@@ -1,14 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Newtonsoft.Json;
 using RestSharp;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
 using Win115.Models;
 using Win115.Properties;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
@@ -44,16 +42,16 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<ProResponseDTO<object?>>(res.Content);
+                var dto = JsonSerializer.Deserialize<ProResponseDTO>(res.Content);
                 if (dto is null)
                 {
                     return;
                 }
-                if (!dto.State || dto.Data is null)
+                if (!dto.State)
                 {
                     return;
                 }
-                var dto2 = JsonConvert.DeserializeObject<ProResponseDTO<OpenOfflineGetQuotaInfo>>(res.Content);
+                var dto2 = JsonSerializer.Deserialize<ProResponseDTO<OpenOfflineGetQuotaInfo>>(res.Content);
                 if (dto2 is null || dto2.Data is null)
                 {
                     return;

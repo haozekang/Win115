@@ -1,25 +1,19 @@
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
     public class OpenAuthDeviceCodeDTO
     {
-        [JsonProperty("uid")]
+        [JsonPropertyName("uid")]
         public string? Uid { get; set; }
 
-        [JsonProperty("time")]
+        [JsonPropertyName("time")]
         public int Time { get; set; }
 
-        [JsonProperty("qrcode")]
+        [JsonPropertyName("qrcode")]
         public string? QrCode { get; set; }
 
-        [JsonProperty("sign")]
+        [JsonPropertyName("sign")]
         public string? Sign { get; set; }
     }
 }

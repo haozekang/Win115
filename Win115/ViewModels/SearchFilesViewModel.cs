@@ -2,27 +2,20 @@ using Autofac;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging.Messages;
-using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.X509;
 using RestSharp;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net.Http.Json;
 using System.Threading.Tasks;
-using System.Xml.XPath;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
 using Win115.Enums;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
-using Win115.Views;
-using Windows.Foundation;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
@@ -129,7 +122,7 @@ namespace Win115.ViewModels
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<OpenUfileSearchDTO>(res.Content);
+                var dto = JsonSerializer.Deserialize<OpenUfileSearchDTO>(res.Content);
                 if (dto is null)
                 {
                     await App.ShowMessageBar("序列化失败！", "错误", InfoBarSeverity.Error);
@@ -274,7 +267,7 @@ namespace Win115.ViewModels
                     {
                         continue;
                     }
-                    var dto = JsonConvert.DeserializeObject<ProResponseDTO<string[]?>>(res.Content);
+                    var dto = JsonSerializer.Deserialize<ProResponseDTO<string[]?>>(res.Content);
                     if (dto is null || !dto.State || dto.Data is null)
                     {
                         continue;

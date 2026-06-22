@@ -405,6 +405,13 @@
                         Visibility="{Binding IsOnlyDirVisibility}" />
                 </MenuFlyout>
             </Grid.ContextFlyout>
+            <ProgressRing
+                Grid.Row="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Canvas.ZIndex="99"
+                IsActive="{x:Bind viewModel.FileItems.IsLoading, Mode=OneWay}"
+                Visibility="Visible" />
             <GridView
                 x:Name="iv"
                 Grid.Row="1"
@@ -448,6 +455,11 @@
                                 Source="{x:Bind ThumbImg, Mode=OneWay}"
                                 Stretch="UniformToFill"
                                 Visibility="{x:Bind IsImageVisibility, Mode=OneWay}" />
+                            <Image
+                                Grid.RowSpan="2"
+                                Source="{x:Bind VideoImg, Mode=OneWay}"
+                                Stretch="UniformToFill"
+                                Visibility="{x:Bind IsMediaVisibility, Mode=OneWay}" />
                             <TextBlock
                                 Grid.Row="1"
                                 Margin="8,0,8,0"
@@ -499,6 +511,12 @@
                                     Source="{x:Bind ThumbImg, Mode=OneWay}"
                                     Stretch="Uniform"
                                     Visibility="{x:Bind IsImageVisibility, Mode=OneWay}" />
+                                <Image
+                                    Width="24"
+                                    Height="24"
+                                    Source="{x:Bind VideoImg, Mode=OneWay}"
+                                    Stretch="Uniform"
+                                    Visibility="{x:Bind IsMediaVisibility, Mode=OneWay}" />
                                 <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
                             </StackPanel>
                             <TextBlock

@@ -1,28 +1,15 @@
-using CommunityToolkit.WinUI.Collections;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
-using System.Drawing.Printing;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.Json;
 using System.Threading;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
 using Win115.Models;
 using Win115.Properties;
 using Win115.ViewModels;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.Storage;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -102,7 +89,7 @@ namespace Win115.Views
                 {
                     return;
                 }
-                var dto = JsonConvert.DeserializeObject<OpenUfileFilesDTO>(res.Content);
+                var dto = JsonSerializer.Deserialize<OpenUfileFilesDTO>(res.Content);
                 if (dto is null)
                 {
                     return;

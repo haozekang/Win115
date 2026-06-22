@@ -47,7 +47,7 @@ namespace Win115
         public static RestClient LoginClient { get; } = new RestClient(new RestClientOptions("https://passportapi.115.com")
         {
             UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
-        }, configureSerialization: s => s.UseNewtonsoftJson());
+        }, configureSerialization: s => s.UseSystemTextJson());
         public static RestClient ProApiClient { get; } = new RestClient(new RestClientOptions("https://proapi.115.com")
         {
             ConfigureMessageHandler = h => 
@@ -56,11 +56,11 @@ namespace Win115
                 handler.InnerHandler = h;
                 return handler;
             }
-        }, configureSerialization: s => s.UseNewtonsoftJson());
+        }, configureSerialization: s => s.UseSystemTextJson());
         public static RestClient QrCodeClient { get; } = new RestClient(new RestClientOptions("https://qrcodeapi.115.com")
         {
             UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
-        }, configureSerialization: s => s.UseNewtonsoftJson());
+        }, configureSerialization: s => s.UseSystemTextJson());
         public static XamlRoot? XamlRoot => _window?.Content.XamlRoot;
 
         /// <summary>
@@ -109,6 +109,7 @@ namespace Win115
             builder.RegisterType<NewCloudDownloadViewModel>().AsSelf().InstancePerLifetimeScope();
             builder.RegisterType<SelectSavePathViewModel>().AsSelf().InstancePerLifetimeScope();
             builder.RegisterType<ViewImagesViewModel>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<ViewMediasViewModel>().AsSelf().InstancePerLifetimeScope();
 
             builder.RegisterInstance(new RestClient(configureSerialization: s =>
             {
@@ -161,6 +162,15 @@ namespace Win115
                 return Task.CompletedTask;
             }
             return mw.UpdatePathBar();
+        }
+
+        public static Task SelectedItemAndScrollIntoView(int index, MyFileItemModel item)
+        {
+            if (_window is null || _window is not MainWindow mw)
+            {
+                return Task.CompletedTask;
+            }
+            return mw.SelectedItemAndScrollIntoView(index, item);
         }
 
         public static T Resolve<T>() where T : notnull

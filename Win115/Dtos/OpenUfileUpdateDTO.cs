@@ -1,14 +1,13 @@
-using Newtonsoft.Json;
-using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
     public class OpenUfileUpdateDTO
     {
-        [JsonProperty("file_name")]
+        [JsonPropertyName("file_name")]
         public string? FileName { get; set; }
 
-        [JsonProperty("star")]
+        [JsonPropertyName("star")]
         public string? Star { get; set; }
     }
 }

@@ -129,10 +129,6 @@ namespace Win115.Views
             iv.ScrollView.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = true });
         }
 
-        internal void SetSelectedItem(string? id)
-        {
-        }
-
         private void btn_max_Click(object sender, RoutedEventArgs e)
         {
             var hwnd = WindowNative.GetWindowHandle(this);

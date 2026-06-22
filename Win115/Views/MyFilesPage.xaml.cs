@@ -1,29 +1,18 @@
-using ABI.System;
 using Autofac;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Tanovo.ExtensionMethods;
 using Win115.Models;
 using Win115.ViewModels;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.System;
 using WinUIEx;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -96,29 +85,52 @@ namespace Win115.Views
                 {
                     await viewModel.EnterFolderCommand.ExecuteAsync(item);
                 }
-                else if (item.FileType == "1" 
-                    && item.IsImageVisibility == Visibility.Visible)
+                else if (item.FileType == "1")
                 {
-                    MyFileItemModel? selectedItem = null;
-                    using var scope = App.CreateScope();
-                    var vm = scope.Resolve<ViewImagesViewModel>();
-                    ViewImagesWindow vw = new ViewImagesWindow(vm);
-                    for (; vm.ImageFileItems.HasMoreItems ; )
+                    if (item.IsImage)
                     {
-                        await vm.ImageFileItems.LoadMoreItemsAsync(100);
-                        selectedItem = vm.SelectedImageItem = vm.ImageFileItems.FirstOrDefault(x => x.Id == item.Id);
-                        if (selectedItem is not null)
+                        MyFileItemModel? selectedItem = null;
+                        using var scope = App.CreateScope();
+                        var vm = scope.Resolve<ViewImagesViewModel>();
+                        ViewImagesWindow vw = new ViewImagesWindow(vm);
+                        for (; vm.ImageFileItems.HasMoreItems;)
                         {
-                            break;
+                            await vm.ImageFileItems.LoadMoreItemsAsync(100);
+                            selectedItem = vm.SelectedImageItem = vm.ImageFileItems.FirstOrDefault(x => x.Id == item.Id);
+                            if (selectedItem is not null)
+                            {
+                                break;
+                            }
                         }
+                        if (selectedItem is null)
+                        {
+                            selectedItem = vm.ImageFileItems.FirstOrDefault(x => x.Id == item.Id);
+                        }
+                        vw.Show();
+                        vw.SetSelectedItem(selectedItem);
                     }
-                    if (selectedItem is null)
+                    else if (item.IsMedia)
                     {
-                        selectedItem = vm.ImageFileItems.FirstOrDefault(x => x.Id == item.Id);
+                        MyFileItemModel? selectedItem = null;
+                        using var scope = App.CreateScope();
+                        var vm = scope.Resolve<ViewMediasViewModel>();
+                        ViewMediasWindow vw = new ViewMediasWindow(vm);
+                        for (; vm.MediaFileItems.HasMoreItems;)
+                        {
+                            await vm.MediaFileItems.LoadMoreItemsAsync(100);
+                            selectedItem = vm.SelectedMediaItem = vm.MediaFileItems.FirstOrDefault(x => x.Id == item.Id);
+                            if (selectedItem is not null)
+                            {
+                                break;
+                            }
+                        }
+                        if (selectedItem is null)
+                        {
+                            selectedItem = vm.MediaFileItems.FirstOrDefault(x => x.Id == item.Id);
+                        }
+                        vw.Show();
+                        vw.SetSelectedItem(selectedItem);
                     }
-                    //vw.SetIsAlwaysOnTop(true);
-                    vw.Show();
-                    vw.SetSelectedItem(selectedItem);
                 }
             }
         }
@@ -517,6 +529,24 @@ namespace Win115.Views
         internal void UpdatePathBar(List<SelectOptionItem> paths)
         {
             path_bar.ItemsSource = paths;
+        }
+
+        internal void SelectedItemAndScrollIntoView(int index, MyFileItemModel item)
+        {
+            if (index < 0 || item is null || viewModel is null)
+            {
+                return;
+            }
+            if (viewModel.ListVisibility == Visibility.Visible)
+            {
+                lv.SelectedItem = item;
+                lv.ScrollIntoView(item);
+            }
+            else if (viewModel.ViewAllVisibility == Visibility.Visible)
+            {
+                iv.SelectedItem = item;
+                iv.ScrollIntoView(item);
+            }
         }
 
         private async void lv_PointerPressed(object sender, PointerRoutedEventArgs e)

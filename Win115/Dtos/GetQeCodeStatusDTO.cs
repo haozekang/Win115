@@ -1,17 +1,16 @@
-using Newtonsoft.Json;
-using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Win115.Dtos
 {
     public class GetQeCodeStatusDTO
     {
-        [JsonProperty("msg")]
+        [JsonPropertyName("msg")]
         public string? Message { get; set; }
 
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public int Status { get; set; }
 
-        [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public string? Version { get; set; }
     }
 }
