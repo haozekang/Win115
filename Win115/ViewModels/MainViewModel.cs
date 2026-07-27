@@ -177,6 +177,9 @@ namespace Win115.ViewModels
                     Name = down.Name,
                     Progress = down.Progress,
                     Size = down.Size,
+                    ParentTaskId = down.ParentTaskId,
+                    IsFolder = down.IsFolder,
+                    TotalFiles = down.TotalFiles,
                     State = down.State switch
                     {
                         DownloadTaskStateEnum.Failed => DownloadTaskStateEnum.Failed,
@@ -204,6 +207,10 @@ namespace Win115.ViewModels
                     ParentId = up.ParentId,
                     Progress = up.Progress,
                     Size = up.Size,
+                    UploadedSize = up.UploadedSize,
+                    ParentTaskId = up.ParentTaskId,
+                    IsFolder = up.IsFolder,
+                    TotalFiles = up.TotalFiles,
                     State = up.State switch
                     {
                         UploadTaskStateEnum.Failed => UploadTaskStateEnum.Failed,
@@ -211,6 +218,10 @@ namespace Win115.ViewModels
                         UploadTaskStateEnum.Canceled => UploadTaskStateEnum.Canceled,
                         _ => UploadTaskStateEnum.Paused
                     },
+                    UploadId = up.UploadId,
+                    PartETags = string.IsNullOrWhiteSpace(up.PartETagsJson)
+                        ? new System.Collections.Generic.Dictionary<int, string>()
+                        : JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<int, string>>(up.PartETagsJson) ?? new System.Collections.Generic.Dictionary<int, string>(),
                     FilePath = up.FilePath,
                     PickCode = up.PickCode,
                     Bucket = up.Bucket,

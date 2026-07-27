@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using System.Text.Json;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
 using Win115.Entities;
@@ -29,16 +30,21 @@ using Win115.Enums;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
+using Win115.Services;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
 {
     public partial class UploadListViewModel : ObservableRecipient
     {
-        private SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
-        private LiteDatabase _db;
-        private string? _uploadingPk;
-        private Channel<UploadItemModel> UploadQueue = Channel.CreateUnbounded<UploadItemModel>();
+        private readonly SemaphoreSlim _schedulerLock = new(1, 1);
+        private readonly LiteDatabase _db;
+        private readonly SystemInfoModel _system;
+        private readonly HashSet<UploadItemModel> _runningTasks = new();
+        private readonly Dictionary<UploadItemModel, int> _retryCounts = new();
+        private readonly Channel<UploadItemModel> _uploadQueue = Channel.CreateUnbounded<UploadItemModel>();
+        private readonly Dictionary<UploadItemModel, (long Bytes, DateTime Timestamp, double Speed)> _speedSnapshots = new();
+        private bool _isQueuePaused;
 
         [ObservableProperty]
         public partial UserInfoModel User { get; set; }
@@ -46,9 +52,10 @@ namespace Win115.ViewModels
         [ObservableProperty]
         public partial ObservableCollection<UploadItemModel> UploadItems { get; set; }
 
-        public UploadListViewModel(UserInfoModel user, LiteDatabase db)
+        public UploadListViewModel(UserInfoModel user, SystemInfoModel system, LiteDatabase db)
         {
             User = user;
+            _system = system;
             _db = db;
             UploadItems = new();
 
@@ -74,7 +81,7 @@ namespace Win115.ViewModels
             try
             {
                 var col = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
-                var uploads = UploadQueue.Reader.ReadAllAsync();
+                var uploads = _uploadQueue.Reader.ReadAllAsync();
                 await foreach (var up in uploads)
                 {
                     var find = col.Query().Where(x => x.Id == up.TaskId).Single();
@@ -127,11 +134,32 @@ namespace Win115.ViewModels
             Debug.WriteLine($"===>Upload task reader start!");
             try
             {
-                await foreach (var item in UploadQueue.Reader.ReadAllAsync())
+                await foreach (var item in _uploadQueue.Reader.ReadAllAsync())
                 {
                     App.DispatcherQueue?.EnqueueAsync(() =>
                     {
+                        if (item.TaskId is null or 0)
+                        {
+                            item.TaskId = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask).Insert(new UploadTaskEntity
+                            {
+                                UserId = User.UserId,
+                                Name = item.Name,
+                                Size = item.Size,
+                                ParentId = item.ParentId,
+                                FilePath = item.FilePath,
+                                Progress = item.Progress,
+                                UploadedSize = item.UploadedSize,
+                                ParentTaskId = item.ParentTaskId,
+                                IsFolder = item.IsFolder,
+                                TotalFiles = item.TotalFiles,
+                                State = item.State,
+                                CreateTime = DateTime.Now,
+                                PartETagsJson = "{}"
+                            }).AsInt32;
+                        }
+                        item.PropertyChanged += (_, _) => PersistTask(item);
                         UploadItems.Insert(0, item);
+                        PersistTask(item);
                     });
                 }
             }
@@ -149,28 +177,92 @@ namespace Win115.ViewModels
                 await Task.Delay(TimeSpan.FromSeconds(1));
                 try
                 {
-                    await _semaphoreSlim.WaitAsync();
-                    var uploadingTasks = UploadItems.Where(t => t.State == UploadTaskStateEnum.Uploading);
-                    if (uploadingTasks.Count() >= 1)
+                    await App.DispatcherQueue!.EnqueueAsync(UpdateTransferMetrics);
+                    await _schedulerLock.WaitAsync();
+                    if (_isQueuePaused)
                     {
                         continue;
                     }
-                    var task = UploadItems.Where(t => t.State == UploadTaskStateEnum.Queued).FirstOrDefault();
-                    if (task is null)
+                    var availableSlots = Math.Clamp(
+                        _system.UploadConcurrentTasks,
+                        1,
+                        UploadSettings.MaxConcurrentTasks) - _runningTasks.Count;
+                    if (availableSlots <= 0)
                     {
                         continue;
                     }
-                    await UploadFileAsync(task);
+
+                    var tasks = UploadItems
+                        .Where(task => !task.IsFolder && task.State == UploadTaskStateEnum.Queued && !_runningTasks.Contains(task))
+                        .Take(availableSlots)
+                        .ToList();
+                    foreach (var task in tasks)
+                    {
+                        _runningTasks.Add(task);
+                        _ = RunUploadTaskAsync(task);
+                    }
                 }
                 finally
                 {
-                    _semaphoreSlim.Release();
+                    _schedulerLock.Release();
+                }
+            }
+        }
+
+        private async Task RunUploadTaskAsync(UploadItemModel task)
+        {
+            try
+            {
+                await UploadFileAsync(task);
+                if (task.State is UploadTaskStateEnum.CalcHash or UploadTaskStateEnum.Uploading)
+                {
+                    await App.DispatcherQueue!.EnqueueAsync(() => task.State = UploadTaskStateEnum.Failed);
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+                await App.DispatcherQueue!.EnqueueAsync(() => task.State = UploadTaskStateEnum.Failed);
+            }
+            finally
+            {
+                await _schedulerLock.WaitAsync();
+                try
+                {
+                    _runningTasks.Remove(task);
+                    if (task.State == UploadTaskStateEnum.Failed)
+                    {
+                        var retryCount = _retryCounts.GetValueOrDefault(task);
+                        var maxRetry = Math.Clamp(_system.UploadMaxRetry, 0, UploadSettings.MaxRetry);
+                        if (retryCount < maxRetry)
+                        {
+                            _retryCounts[task] = retryCount + 1;
+                            await App.DispatcherQueue!.EnqueueAsync(() => task.State = UploadTaskStateEnum.Queued);
+                        }
+                    }
+                    else if (task.State is UploadTaskStateEnum.Completed or UploadTaskStateEnum.Canceled)
+                    {
+                        _retryCounts.Remove(task);
+                    }
+                }
+                finally
+                {
+                    _schedulerLock.Release();
                 }
             }
         }
 
         private async Task UploadFileAsync(UploadItemModel task)
         {
+            if (ShouldStopUpload(task))
+            {
+                return;
+            }
+
+            var checkpointUploadId = task.UploadId;
+            var checkpointPickCode = task.PickCode;
+            var checkpointBucket = task.Bucket;
+            var checkpointObject = task.Object;
             if (task.FilePath is null || task.FilePath.AsFilePathAndExists() != true)
             {
                 await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -197,8 +289,15 @@ namespace Win115.ViewModels
             }
             await App.DispatcherQueue!.EnqueueAsync(() =>
             {
-                task.State = UploadTaskStateEnum.CalcHash;
+                if (!ShouldStopUpload(task))
+                {
+                    task.State = UploadTaskStateEnum.CalcHash;
+                }
             });
+            if (ShouldStopUpload(task))
+            {
+                return;
+            }
             var fileid = string.Empty;
             using (var fs = new FileStream(task.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
@@ -211,6 +310,10 @@ namespace Win115.ViewModels
                 var hash = new byte[digest.GetDigestSize()];
                 digest.DoFinal(hash, 0);
                 fileid = Hex.ToHexString(hash);
+            }
+            if (ShouldStopUpload(task))
+            {
+                return;
             }
             var reqInit = new RestRequest(ApiResource.OpenUploadInit);
             reqInit.AddParameter("file_name", fileName);
@@ -257,6 +360,9 @@ namespace Win115.ViewModels
                 {
                     await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
+                        task.PickCode = fNoCallback.PickCode;
+                        task.FileId = fNoCallback.FileId;
+                        task.Progress = 1;
                         task.State = UploadTaskStateEnum.Completed;
                     });
                     return;
@@ -415,7 +521,6 @@ namespace Win115.ViewModels
                 await LogHelper.Error(ex);
             }
             string responseContent = string.Empty;
-            _uploadingPk = task.PickCode ?? string.Empty;
             var localFilename = task.FilePath;
             try
             {
@@ -448,9 +553,10 @@ namespace Win115.ViewModels
                         }
                     }
                     callbackMeta.AddHeader(HttpHeaders.CallbackVar, callbackVariableHeaderBuilder.Build());
-                    PutObjectRequest request = new PutObjectRequest(bucket, objectId, File.OpenRead(localFilename))
+                    using var inputStream = File.OpenRead(localFilename);
+                    PutObjectRequest request = new PutObjectRequest(bucket, objectId, inputStream)
                     {
-                        StreamTransferProgress = streamProgressCallback,
+                        StreamTransferProgress = (_, args) => UpdateStreamProgress(task, args),
                         Metadata = callbackMeta
                     };
                     var result = client.PutObject(request);
@@ -459,12 +565,22 @@ namespace Win115.ViewModels
                 // 分片上传
                 else
                 {
+                    if (ShouldStopUpload(task))
+                    {
+                        return;
+                    }
                     var reqResume = new RestRequest(ApiResource.OpenUploadResume);
                     reqResume.AddParameter("file_size", $"{fileSize}");
                     reqResume.AddParameter("target", target);
                     reqResume.AddParameter("fileid", fileid);
-                    reqResume.AddParameter("pick_code", task.PickCode);
+                    reqResume.AddParameter("pick_code", checkpointUploadId.IsNotBlank() && checkpointPickCode.IsNotBlank()
+                        ? checkpointPickCode
+                        : task.PickCode);
                     var resResume = await App.ProApiClient.PostAsync(reqResume);
+                    if (ShouldStopUpload(task))
+                    {
+                        return;
+                    }
                     if (!resResume.IsSuccessful || resResume.Content.IsBlank())
                     {
                         await App.DispatcherQueue!.EnqueueAsync(() =>
@@ -499,9 +615,15 @@ namespace Win115.ViewModels
                         });
                         return;
                     }
-                    _uploadingPk = dtoResume.Data.PickCode;
-                    bucket = dtoResume.Data.Bucket;
-                    objectId = dtoResume.Data.Object;
+                    var uploadingPickCode = checkpointUploadId.IsNotBlank() && checkpointPickCode.IsNotBlank()
+                        ? checkpointPickCode
+                        : dtoResume.Data.PickCode;
+                    bucket = checkpointUploadId.IsNotBlank() && checkpointBucket.IsNotBlank()
+                        ? checkpointBucket
+                        : dtoResume.Data.Bucket;
+                    objectId = checkpointUploadId.IsNotBlank() && checkpointObject.IsNotBlank()
+                        ? checkpointObject
+                        : dtoResume.Data.Object;
                     callback = dtoResume.Data.Callback.Callback;
                     callbackVars = JsonSerializer.Deserialize<Dictionary<string, string>>(dtoResume.Data.Callback.CallbackVar);
                     var callbackDto = JsonSerializer.Deserialize<AliyunOssCallbackDTO>(callback);
@@ -515,7 +637,7 @@ namespace Win115.ViewModels
                     }
                     await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
-                        task.PickCode = _uploadingPk;
+                        task.PickCode = uploadingPickCode;
                         task.Bucket = bucket;
                         task.Object = objectId;
                     });
@@ -545,29 +667,82 @@ namespace Win115.ViewModels
                         });
                         return;
                     }
-                    var uploadId = "";
+                    var uploadId = task.UploadId ?? "";
                     try
                     {
-                        //var request = new InitiateMultipartUploadRequest(bucket, objectId);
-                        var result = await InitiateMultipartUploadAsync(endpoint, bucket, objectId, accessKeyId, accessKeySecret, securityToken);
-                        uploadId = result.UploadId;
+                        if (ShouldStopUpload(task))
+                        {
+                            return;
+                        }
+                        if (uploadId.IsNotBlank())
+                        {
+                            try
+                            {
+                                // 不盲信本地 ETag；恢复前以 OSS 服务端实际已存在的分片为准。
+                                var listing = client.ListParts(new ListPartsRequest(bucket, objectId, uploadId)
+                                {
+                                    MaxParts = 1000
+                                });
+                                var serverParts = listing.Parts.ToDictionary(p => p.PartNumber, p => p.PartETag.ETag);
+                                await App.DispatcherQueue!.EnqueueAsync(() => task.PartETags = serverParts);
+                                if (ShouldStopUpload(task))
+                                {
+                                    return;
+                                }
+                            }
+                            catch (OssException ex)
+                            {
+                                Debug.WriteLine(ex);
+                                Debug.WriteLine(ex.StackTrace);
+                                // UploadId 已失效，下面重新申请新的 multipart 会话。
+                                uploadId = string.Empty;
+                                await App.DispatcherQueue!.EnqueueAsync(() =>
+                                {
+                                    task.UploadId = string.Empty;
+                                    task.PartETags = new Dictionary<int, string>();
+                                });
+                            }
+                        }
+                        if (uploadId.IsBlank())
+                        {
+                            if (ShouldStopUpload(task))
+                            {
+                                return;
+                            }
+                            var result = await InitiateMultipartUploadAsync(endpoint, bucket, objectId, accessKeyId, accessKeySecret, securityToken);
+                            uploadId = result.UploadId;
+                            await App.DispatcherQueue!.EnqueueAsync(() => task.UploadId = uploadId);
+                            if (ShouldStopUpload(task))
+                            {
+                                return;
+                            }
+                        }
                         Debug.WriteLine("Init multi part upload succeeded");
-                        Debug.WriteLine("Upload Id:{0}", result.UploadId);
+                        Debug.WriteLine("Upload Id:{0}", uploadId);
                     }
                     catch (Exception ex)
                     {
                         await LogHelper.Error(ex);
                     }
-                    var partSize = 1 * 1024 * 1024;
+                    const long minimumPartSize = 1L * 1024 * 1024;
+                    const long maximumPartCount = 1000;
+                    var partSize = Math.Max(minimumPartSize, (fileSize.Value + maximumPartCount - 1) / maximumPartCount);
                     var fi = new FileInfo(localFilename);
                     var partCount = fileSize / partSize;
                     if (fileSize % partSize != 0)
                     {
                         partCount++;
                     }
-                    var partETags = new List<PartETag>();
+                    var partETags = (task.PartETags ?? new Dictionary<int, string>())
+                        .OrderBy(x => x.Key)
+                        .Select(x => new PartETag(x.Key, x.Value))
+                        .ToList();
                     try
                     {
+                        if (ShouldStopUpload(task))
+                        {
+                            return;
+                        }
                         await App.DispatcherQueue!.EnqueueAsync(() =>
                         {
                             task.State = UploadTaskStateEnum.Uploading;
@@ -577,6 +752,14 @@ namespace Win115.ViewModels
                         {
                             for (var i = 0; i < partCount; i++)
                             {
+                                if (ShouldStopUpload(task))
+                                {
+                                    return;
+                                }
+                                if (task.PartETags?.ContainsKey(i + 1) == true)
+                                {
+                                    continue;
+                                }
                                 var skipBytes = (long)partSize * i;
                                 // 定位到本次上传的起始位置。
                                 fs.Seek(skipBytes, 0);
@@ -591,11 +774,20 @@ namespace Win115.ViewModels
                                 // 调用UploadPart接口执行上传功能，返回结果中包含了这个数据片的ETag值。
                                 var result = client.UploadPart(request);
                                 partETags.Add(result.PartETag);
+                                await App.DispatcherQueue!.EnqueueAsync(() =>
+                                {
+                                    task.PartETags ??= new Dictionary<int, string>();
+                                    task.PartETags[result.PartETag.PartNumber] = result.PartETag.ETag;
+                                });
                                 Debug.WriteLine("finish {0}/{1}", partETags.Count, partCount);
                                 await App.DispatcherQueue!.EnqueueAsync(() =>
                                 {
                                     task.Progress = partETags.Count * 1.0 / partCount;
                                 });
+                                if (ShouldStopUpload(task))
+                                {
+                                    return;
+                                }
                             }
                             Debug.WriteLine("Put multi part upload succeeded");
                         }
@@ -603,10 +795,32 @@ namespace Win115.ViewModels
                     catch (Exception ex)
                     {
                         Debug.WriteLine("Put multi part upload failed, {0}", ex.Message);
+                        var errorText = ex.ToString();
+                        if (errorText.Contains("specified upload does not exist", StringComparison.OrdinalIgnoreCase)
+                            || errorText.Contains("upload ID may be invalid", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // 服务端已清理检查点，丢弃本地 UploadId/ETag 后重新初始化。
+                            task.UploadId = string.Empty;
+                            task.PartETags = new Dictionary<int, string>();
+                            task.Progress = 0;
+                            await App.DispatcherQueue!.EnqueueAsync(() =>
+                            {
+                                task.State = UploadTaskStateEnum.Queued;
+                            });
+                        }
+                        else
+                        {
+                            await App.DispatcherQueue!.EnqueueAsync(() => task.State = UploadTaskStateEnum.Failed);
+                        }
+                        return;
                     }
 
                     try
                     {
+                        if (ShouldStopUpload(task))
+                        {
+                            return;
+                        }
                         var completeMultipartUploadRequest = new CompleteMultipartUploadRequest(bucket, objectId, uploadId);
                         foreach (var partETag in partETags)
                         {
@@ -643,8 +857,10 @@ namespace Win115.ViewModels
                 }
                 if (uploadRes.State == true)
                 {
-                    App.DispatcherQueue!.TryEnqueue(() =>
+                    await App.DispatcherQueue!.EnqueueAsync(() =>
                     {
+                        task.Progress = 1;
+                        task.State = UploadTaskStateEnum.Completed;
                         App.ShowMessageBar($"上传成功", "信息", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Success, autoClose: TimeSpan.FromSeconds(5));
                     });
                 }
@@ -662,6 +878,12 @@ namespace Win115.ViewModels
             }
         }
 
+        private static bool ShouldStopUpload(UploadItemModel task)
+        {
+            return task.State == UploadTaskStateEnum.Paused
+                || task.State == UploadTaskStateEnum.Canceled;
+        }
+
         /// <summary>
         /// 读取上传回调返回的消息内容。
         /// </summary>
@@ -677,29 +899,27 @@ namespace Win115.ViewModels
             return callbackResponse;
         }
 
-        private void streamProgressCallback(object? sender, StreamTransferProgressArgs args)
+        private void UpdateStreamProgress(UploadItemModel task, StreamTransferProgressArgs args)
         {
             var p = args.TransferredBytes * 1.0f / args.TotalBytes;
-            if (_uploadingPk.IsNotBlank())
+            App.DispatcherQueue?.TryEnqueue(() =>
             {
-                App.DispatcherQueue?.TryEnqueue(() =>
-                {
-                    var item = UploadItems.FirstOrDefault(x => x.PickCode == _uploadingPk);
-                    if (item is not null)
-                    {
-                        item.Progress = p;
-                    }
-                });
+                task.Progress = p;
+                task.UploadedSize = args.TransferredBytes;
+            });
+            if (task.TaskId is > 0)
+            {
                 var col = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
-                var find = col.Query().Where(x => x.PickCode == _uploadingPk).SingleOrDefault();
+                var find = col.FindById(task.TaskId.Value);
                 if (find is not null)
                 {
                     find.Progress = p;
+                    col.Update(find);
                 }
             }
         }
 
-        public async Task AddTask(string filePath, string targetDirId = "0")
+        public async Task AddTask(string filePath, string targetDirId = "0", int? parentTaskId = null)
         {
             if (filePath.AsFilePathAndExists() != true)
             {
@@ -711,14 +931,16 @@ namespace Win115.ViewModels
             }
             try
             {
-                await UploadQueue.Writer.WriteAsync(new UploadItemModel
+                var item = new UploadItemModel
                 {
                     Name = Path.GetFileName(filePath),
                     Size = new FileInfo(filePath).Length,
                     ParentId = targetDirId,
                     FilePath = filePath,
+                    ParentTaskId = parentTaskId,
                     State = UploadTaskStateEnum.Queued,
-                });
+                };
+                await _uploadQueue.Writer.WriteAsync(item);
             }
             catch (Exception ex)
             {
@@ -729,6 +951,158 @@ namespace Win115.ViewModels
             }
         }
 
+        private void PersistTask(UploadItemModel task)
+        {
+            if (task.TaskId is null or 0 || User.UserId.IsBlank())
+            {
+                return;
+            }
+
+            var collection = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
+            var entity = collection.FindById(task.TaskId.Value);
+            if (entity is null)
+            {
+                return;
+            }
+
+            entity.FileId = task.FileId;
+            entity.ParentId = task.ParentId;
+            entity.Name = task.Name;
+            entity.Size = task.Size;
+            entity.Progress = task.Progress;
+            entity.UploadedSize = task.UploadedSize;
+            entity.ParentTaskId = task.ParentTaskId;
+            entity.IsFolder = task.IsFolder;
+            entity.TotalFiles = task.TotalFiles;
+            entity.FilePath = task.FilePath;
+            entity.Bucket = task.Bucket;
+            entity.Object = task.Object;
+            entity.Endpoint = task.Endpoint;
+            entity.Region = task.Region;
+            entity.PickCode = task.PickCode;
+            entity.UploadId = task.UploadId;
+            entity.PartETagsJson = JsonSerializer.Serialize(task.PartETags ?? new Dictionary<int, string>());
+            entity.State = task.State;
+            collection.Update(entity);
+        }
+
+        public async Task<int> BeginFolderTaskAsync(string folderName, string folderPath, string targetDirectoryId)
+        {
+            var item = new UploadItemModel
+            {
+                Name = folderName,
+                FilePath = folderPath,
+                ParentId = targetDirectoryId,
+                IsFolder = true,
+                Progress = 0,
+                State = UploadTaskStateEnum.Queued
+            };
+            var collection = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
+            item.TaskId = collection.Insert(new UploadTaskEntity
+            {
+                UserId = User.UserId,
+                Name = folderName,
+                FilePath = folderPath,
+                ParentId = targetDirectoryId,
+                IsFolder = true,
+                Progress = 0,
+                State = UploadTaskStateEnum.Queued,
+                CreateTime = DateTime.Now,
+                PartETagsJson = "{}"
+            }).AsInt32;
+            item.PropertyChanged += (_, _) => PersistTask(item);
+            await App.DispatcherQueue!.EnqueueAsync(() => UploadItems.Insert(0, item));
+            return item.TaskId.Value;
+        }
+
+        public void CompleteFolderCollection(int taskId, int totalFiles, long totalSize)
+        {
+            var folder = UploadItems.FirstOrDefault(item => item.TaskId == taskId);
+            if (folder is not null)
+            {
+                folder.TotalFiles = totalFiles;
+                folder.Size = totalSize;
+                if (totalFiles == 0)
+                {
+                    folder.Progress = 1;
+                    folder.State = UploadTaskStateEnum.Completed;
+                }
+                PersistTask(folder);
+            }
+            var collection = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
+            var entity = collection.FindById(taskId);
+            if (entity is not null)
+            {
+                entity.TotalFiles = totalFiles;
+                entity.Size = totalSize;
+                if (totalFiles == 0)
+                {
+                    entity.Progress = 1;
+                    entity.State = UploadTaskStateEnum.Completed;
+                }
+                collection.Update(entity);
+            }
+            UpdateTransferMetrics();
+        }
+
+        private void UpdateTransferMetrics()
+        {
+            var now = DateTime.UtcNow;
+            foreach (var item in UploadItems.Where(item => !item.IsFolder))
+            {
+                var bytes = item.State == UploadTaskStateEnum.Completed
+                    ? item.Size ?? 0
+                    : (long)Math.Clamp((item.Size ?? 0) * (item.Progress ?? 0), 0, item.Size ?? 0);
+                item.UploadedSize = bytes;
+                if (_speedSnapshots.TryGetValue(item, out var previous))
+                {
+                    var seconds = (now - previous.Timestamp).TotalSeconds;
+                    var rawSpeed = seconds > 0 ? Math.Max(0, bytes - previous.Bytes) / seconds : 0;
+                    var speed = previous.Speed <= 0 ? rawSpeed : (0.3 * rawSpeed) + (0.7 * previous.Speed);
+                    item.Speed = item.State == UploadTaskStateEnum.Uploading ? (long)speed : 0;
+                    item.RemainingTime = item.Speed > 0 && item.Size > bytes
+                        ? TimeSpan.FromSeconds((item.Size.Value - bytes) / (double)item.Speed.Value)
+                        : null;
+                    _speedSnapshots[item] = (bytes, now, speed);
+                }
+                else
+                {
+                    _speedSnapshots[item] = (bytes, now, 0);
+                }
+            }
+
+            foreach (var folder in UploadItems.Where(item => item.IsFolder).ToList())
+            {
+                var children = UploadItems.Where(item => item.ParentTaskId == folder.TaskId).ToList();
+                if (children.Count == 0)
+                {
+                    continue;
+                }
+
+                var uploaded = children.Sum(item => item.UploadedSize ?? 0);
+                folder.TotalFiles = children.Count;
+                folder.Size = children.Sum(item => item.Size ?? 0);
+                folder.UploadedSize = uploaded;
+                folder.Progress = folder.Size > 0 ? uploaded / (double)folder.Size : 0;
+                folder.Speed = children.Where(item => item.State == UploadTaskStateEnum.Uploading).Sum(item => item.Speed ?? 0);
+                folder.RemainingTime = folder.Speed > 0 && folder.Size > uploaded
+                    ? TimeSpan.FromSeconds((folder.Size.Value - uploaded) / (double)folder.Speed.Value)
+                    : null;
+                folder.State = DeriveFolderState(children);
+                PersistTask(folder);
+            }
+        }
+
+        private static UploadTaskStateEnum DeriveFolderState(IReadOnlyCollection<UploadItemModel> children)
+        {
+            if (children.All(item => item.State == UploadTaskStateEnum.Completed)) return UploadTaskStateEnum.Completed;
+            if (children.Any(item => item.State is UploadTaskStateEnum.Uploading or UploadTaskStateEnum.CalcHash)) return UploadTaskStateEnum.Uploading;
+            if (children.Any(item => item.State == UploadTaskStateEnum.Queued)) return UploadTaskStateEnum.Queued;
+            if (children.All(item => item.State == UploadTaskStateEnum.Paused)) return UploadTaskStateEnum.Paused;
+            if (children.Any(item => item.State == UploadTaskStateEnum.Failed)) return UploadTaskStateEnum.Failed;
+            return UploadTaskStateEnum.Canceled;
+        }
+
         [RelayCommand]
         public async Task ClearFinish()
         {
@@ -737,11 +1111,86 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task PauseAll()
         {
+            await _schedulerLock.WaitAsync();
+            try
+            {
+                _isQueuePaused = true;
+                var tasks = UploadItems
+                    .Where(item => item.State is UploadTaskStateEnum.Queued
+                        or UploadTaskStateEnum.CalcHash
+                        or UploadTaskStateEnum.Uploading)
+                    .ToList();
+                if (tasks.Count == 0)
+                {
+                    _isQueuePaused = false;
+                    return;
+                }
+
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    foreach (var task in tasks)
+                    {
+                        task.State = UploadTaskStateEnum.Paused;
+                    }
+                });
+                SaveTaskStates(tasks, UploadTaskStateEnum.Paused);
+            }
+            finally
+            {
+                _schedulerLock.Release();
+            }
         }
 
         [RelayCommand]
         public async Task StartAll()
         {
+            await _schedulerLock.WaitAsync();
+            try
+            {
+                var tasks = UploadItems
+                    .Where(item => item.State == UploadTaskStateEnum.Paused)
+                    .ToList();
+                if (tasks.Count == 0)
+                {
+                    _isQueuePaused = false;
+                    return;
+                }
+
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    foreach (var task in tasks)
+                    {
+                        task.State = UploadTaskStateEnum.Queued;
+                    }
+                });
+                _isQueuePaused = false;
+                SaveTaskStates(tasks, UploadTaskStateEnum.Queued);
+            }
+            finally
+            {
+                _schedulerLock.Release();
+            }
+        }
+
+        private void SaveTaskStates(IEnumerable<UploadItemModel> tasks, UploadTaskStateEnum state)
+        {
+            var collection = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask);
+            foreach (var task in tasks)
+            {
+                if (task.TaskId is not > 0)
+                {
+                    continue;
+                }
+
+                var entity = collection.FindById(task.TaskId.Value);
+                if (entity is null)
+                {
+                    continue;
+                }
+
+                entity.State = state;
+                collection.Update(entity);
+            }
         }
 
 

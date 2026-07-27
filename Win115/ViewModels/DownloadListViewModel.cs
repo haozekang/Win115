@@ -23,6 +23,7 @@ using Win115.Handlers;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
+using Win115.Services;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Win115.ViewModels
@@ -31,6 +32,9 @@ namespace Win115.ViewModels
     {
         private SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
         private LiteDatabase _db;
+        private readonly DownloadEngine _downloadEngine;
+        private readonly SystemInfoModel _system;
+        private bool _isQueuePaused;
         private Channel<DownloadItemModel> DownloadQueue = Channel.CreateUnbounded<DownloadItemModel>();
 
         [ObservableProperty]
@@ -39,10 +43,12 @@ namespace Win115.ViewModels
         [ObservableProperty]
         public partial ObservableCollection<DownloadItemModel> DownloadItems { get; set; }
 
-        public DownloadListViewModel(UserInfoModel user, LiteDatabase db)
+        public DownloadListViewModel(UserInfoModel user, SystemInfoModel system, LiteDatabase db, DownloadEngine downloadEngine)
         {
             User = user;
             _db = db;
+            _downloadEngine = downloadEngine;
+            _system = system;
             DownloadItems = new();
 
             Task.Factory.StartNew(ReadTask);
@@ -137,14 +143,20 @@ namespace Win115.ViewModels
                 await Task.Delay(TimeSpan.FromSeconds(1));
                 try
                 {
+                    await App.DispatcherQueue!.EnqueueAsync(UpdateFolderAggregates);
                     await _semaphoreSlim.WaitAsync();
-                    var downloadingTasks = DownloadItems.Where(t => t.State == DownloadTaskStateEnum.Downloading);
-                    if (downloadingTasks.Count() >= 5)
+                    if (_isQueuePaused)
                     {
                         continue;
                     }
-                    var newCount = 5 - downloadingTasks.Count();
-                    var newStartTasks = DownloadItems.Where(t => t.State == DownloadTaskStateEnum.Queued).Take(newCount);
+                    var downloadingTasks = DownloadItems.Where(t => !t.IsFolder && t.State == DownloadTaskStateEnum.Downloading);
+                    var concurrentTasks = Math.Clamp(_system.DownloadConcurrentTasks, 1, DownloadSettings.MaxConcurrentTasks);
+                    if (downloadingTasks.Count() >= concurrentTasks)
+                    {
+                        continue;
+                    }
+                    var newCount = concurrentTasks - downloadingTasks.Count();
+                    var newStartTasks = DownloadItems.Where(t => !t.IsFolder && t.State == DownloadTaskStateEnum.Queued).Take(newCount);
                     foreach (var task in newStartTasks)
                     {
                         _ = DownloadFileAsync(task);
@@ -158,6 +170,143 @@ namespace Win115.ViewModels
         }
 
         private async Task DownloadFileAsync(DownloadItemModel task)
+        {
+            if (task.State != DownloadTaskStateEnum.Queued)
+            {
+                return;
+            }
+
+            if (App.DispatcherQueue is not null)
+            {
+                await App.DispatcherQueue.EnqueueAsync(() =>
+                {
+                    if (task.State == DownloadTaskStateEnum.Queued)
+                    {
+                        task.State = DownloadTaskStateEnum.Downloading;
+                    }
+                });
+            }
+            else
+            {
+                task.State = DownloadTaskStateEnum.Downloading;
+            }
+            if (task.State != DownloadTaskStateEnum.Downloading)
+            {
+                return;
+            }
+            var collection = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            var entity = collection.FindById(task.TaskId);
+            if (entity is null)
+            {
+                task.State = DownloadTaskStateEnum.Failed;
+                return;
+            }
+
+            try
+            {
+                if (task.Url.IsBlank() || task.SavePath.IsBlank() || task.Size is null or <= 0)
+                {
+                    throw new InvalidOperationException("下载任务缺少地址、保存路径或文件大小。");
+                }
+
+                DownloadResult? result = null;
+                for (var urlRefreshAttempt = 0; urlRefreshAttempt <= 2; urlRefreshAttempt++)
+                {
+                    try
+                    {
+                        result = await _downloadEngine.DownloadAsync(
+                            new Uri(task.Url),
+                            task.SavePath,
+                            task.Size.Value,
+                            entity.DownloadedSize ?? 0,
+                            entity.Segments,
+                            () => task.State == DownloadTaskStateEnum.Downloading,
+                            async progress =>
+                            {
+                                entity.DownloadedSize = progress.DownloadedBytes;
+                                entity.Progress = progress.DownloadedBytes * 1.0 / progress.TotalBytes;
+                                entity.Segments = progress.Segments;
+                                collection.Update(entity);
+                                if (App.DispatcherQueue is not null)
+                                {
+                                    await App.DispatcherQueue.EnqueueAsync(() =>
+                                    {
+                                        task.Progress = entity.Progress;
+                                        task.Speed = progress.BytesPerSecond;
+                                        task.RemainingTime = progress.BytesPerSecond > 0
+                                            ? TimeSpan.FromSeconds((progress.TotalBytes - progress.DownloadedBytes) / (double)progress.BytesPerSecond)
+                                            : null;
+                                    });
+                                }
+                            });
+                        break;
+                    }
+                    catch (HttpRequestException ex) when (
+                        ex.StatusCode == System.Net.HttpStatusCode.Forbidden &&
+                        urlRefreshAttempt < 2 &&
+                        task.State == DownloadTaskStateEnum.Downloading)
+                    {
+                        var refreshedUrl = await RefreshDownloadUrlAsync(task.PickCode!);
+                        if (refreshedUrl.IsBlank() || string.Equals(refreshedUrl, task.Url, StringComparison.Ordinal))
+                        {
+                            throw;
+                        }
+
+                        task.Url = refreshedUrl;
+                        entity.Url = refreshedUrl;
+                        collection.Update(entity);
+                        await Task.Delay(TimeSpan.FromSeconds(urlRefreshAttempt + 1));
+                    }
+                }
+
+                if (result is null)
+                {
+                    throw new InvalidOperationException("下载地址刷新后仍无法继续下载。");
+                }
+
+                entity.DownloadedSize = result.DownloadedBytes;
+                entity.Progress = result.DownloadedBytes * 1.0 / task.Size.Value;
+                entity.Segments = result.Segments;
+                entity.State = result.IsCompleted ? DownloadTaskStateEnum.Completed : task.State;
+                collection.Update(entity);
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    task.Progress = entity.Progress;
+                    task.Speed = 0;
+                    task.RemainingTime = null;
+                    if (result.IsCompleted)
+                    {
+                        task.State = DownloadTaskStateEnum.Completed;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                entity.State = DownloadTaskStateEnum.Failed;
+                collection.Update(entity);
+                App.DispatcherQueue?.TryEnqueue(() => task.State = DownloadTaskStateEnum.Failed);
+                await LogHelper.Error(ex);
+            }
+        }
+
+        private static async Task<string?> RefreshDownloadUrlAsync(string pickCode)
+        {
+            var request = new RestRequest(ApiResource.OpenUfileDownurl);
+            request.AddOrUpdateParameter("pick_code", pickCode);
+            request.AlwaysMultipartFormData = true;
+            var response = await App.ProApiClient.PostAsync(request);
+            if (!response.IsSuccessful || response.Content.IsBlank())
+            {
+                return null;
+            }
+
+            var dto = JsonSerializer.Deserialize<ProResponseDTO<Dictionary<string, OpenUfileDownurlDTO?>?>>(response.Content);
+            return dto is { State: true, Data.Count: > 0 }
+                ? dto.Data.First().Value?.Url?.Url
+                : null;
+        }
+
+        private async Task DownloadFileLegacyAsync(DownloadItemModel task)
         {
             App.DispatcherQueue?.TryEnqueue(() =>
             {
@@ -294,7 +443,7 @@ namespace Win115.ViewModels
         /// <param name="start">立即启动下载（默认true）</param>
         /// <param name="progress">当前进度（默认0）</param>
         /// <returns></returns>
-        public async Task AddTask(string pk, string fileName, long? fileSize, string saveDirPath = "", bool start = true, double progress = 0)
+        public async Task AddTask(string pk, string fileName, long? fileSize, string saveDirPath = "", bool start = true, double progress = 0, int? parentTaskId = null)
         {
             if (pk.IsBlank())
             {
@@ -326,7 +475,8 @@ namespace Win115.ViewModels
                     Size = fileSize,
                     PickCode = pk,
                     Url = dto.Data.First().Value?.Url?.Url,
-                    UserId = User.UserId
+                    UserId = User.UserId,
+                    ParentTaskId = parentTaskId
                 });
 
                 await DownloadQueue.Writer.WriteAsync(new DownloadItemModel
@@ -338,7 +488,8 @@ namespace Win115.ViewModels
                     SavePath = Path.Combine(saveDirPath, fileName),
                     Size = fileSize,
                     PickCode = pk,
-                    Url = dto.Data.First().Value?.Url?.Url
+                    Url = dto.Data.First().Value?.Url?.Url,
+                    ParentTaskId = parentTaskId
                 });
             }
             catch (Exception ex)
@@ -371,36 +522,184 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task PauseAll()
         {
-            var ids = DownloadItems.Where(x => x.State == DownloadTaskStateEnum.Downloading).Select(x => x.TaskId);
-            foreach (var id in ids)
+            await _semaphoreSlim.WaitAsync();
+            try
             {
-                var item = DownloadItems.FirstOrDefault(x => x.TaskId == id);
-                if (item is null || item.State != DownloadTaskStateEnum.Downloading)
+                _isQueuePaused = true;
+                var tasks = DownloadItems
+                    .Where(item => item.State is DownloadTaskStateEnum.Downloading or DownloadTaskStateEnum.Queued)
+                    .ToList();
+                if (tasks.Count == 0)
+                {
+                    _isQueuePaused = false;
+                    return;
+                }
+
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    foreach (var task in tasks)
+                    {
+                        task.Speed = 0;
+                        task.State = DownloadTaskStateEnum.Paused;
+                    }
+                });
+                SaveTaskStates(tasks, DownloadTaskStateEnum.Paused);
+            }
+            finally
+            {
+                _semaphoreSlim.Release();
+            }
+        }
+
+        public async Task<int> BeginFolderTaskAsync(string folderName, string savePath)
+        {
+            var collection = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            var entity = new DownloadTaskEntity
+            {
+                UserId = User.UserId,
+                Name = folderName,
+                SavePath = savePath,
+                IsFolder = true,
+                Progress = 0,
+                State = DownloadTaskStateEnum.Queued,
+                CreateTime = DateTime.Now
+            };
+            var id = collection.Insert(entity).AsInt32;
+            var item = new DownloadItemModel
+            {
+                TaskId = id,
+                Name = folderName,
+                SavePath = savePath,
+                IsFolder = true,
+                Progress = 0,
+                State = DownloadTaskStateEnum.Queued
+            };
+            await App.DispatcherQueue!.EnqueueAsync(() => DownloadItems.Insert(0, item));
+            return id;
+        }
+
+        public void CompleteFolderCollection(int taskId, int totalFiles, long totalSize)
+        {
+            var folder = DownloadItems.FirstOrDefault(item => item.TaskId == taskId);
+            if (folder is not null)
+            {
+                folder.TotalFiles = totalFiles;
+                folder.Size = totalSize;
+                if (totalFiles == 0)
+                {
+                    folder.Progress = 1;
+                    folder.State = DownloadTaskStateEnum.Completed;
+                }
+            }
+            var collection = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            var entity = collection.FindById(taskId);
+            if (entity is not null)
+            {
+                entity.TotalFiles = totalFiles;
+                entity.Size = totalSize;
+                if (totalFiles == 0)
+                {
+                    entity.Progress = 1;
+                    entity.State = DownloadTaskStateEnum.Completed;
+                }
+                collection.Update(entity);
+            }
+            UpdateFolderAggregates();
+        }
+
+        private void UpdateFolderAggregates()
+        {
+            var collection = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            foreach (var folder in DownloadItems.Where(item => item.IsFolder).ToList())
+            {
+                var children = DownloadItems.Where(item => item.ParentTaskId == folder.TaskId).ToList();
+                if (children.Count == 0)
                 {
                     continue;
                 }
-                await App.DispatcherQueue!.EnqueueAsync(() =>
+
+                var downloaded = children.Sum(item => (long)Math.Clamp((item.Size ?? 0) * (item.Progress ?? 0), 0, item.Size ?? 0));
+                folder.TotalFiles = children.Count;
+                folder.Size = children.Sum(item => item.Size ?? 0);
+                folder.Progress = folder.Size > 0 ? downloaded / (double)folder.Size : 0;
+                folder.Speed = children.Where(item => item.State == DownloadTaskStateEnum.Downloading).Sum(item => item.Speed ?? 0);
+                folder.RemainingTime = folder.Speed > 0 && folder.Size > downloaded
+                    ? TimeSpan.FromSeconds((folder.Size.Value - downloaded) / (double)folder.Speed.Value)
+                    : null;
+                folder.State = DeriveFolderState(children);
+
+                var entity = collection.FindById(folder.TaskId);
+                if (entity is not null)
                 {
-                    item.State = DownloadTaskStateEnum.Paused;
-                });
+                    entity.DownloadedSize = downloaded;
+                    entity.Size = folder.Size;
+                    entity.TotalFiles = folder.TotalFiles;
+                    entity.Progress = folder.Progress;
+                    entity.State = folder.State;
+                    collection.Update(entity);
+                }
             }
+        }
+
+        private static DownloadTaskStateEnum DeriveFolderState(IReadOnlyCollection<DownloadItemModel> children)
+        {
+            if (children.All(item => item.State == DownloadTaskStateEnum.Completed)) return DownloadTaskStateEnum.Completed;
+            if (children.Any(item => item.State == DownloadTaskStateEnum.Downloading)) return DownloadTaskStateEnum.Downloading;
+            if (children.Any(item => item.State == DownloadTaskStateEnum.Queued)) return DownloadTaskStateEnum.Queued;
+            if (children.All(item => item.State == DownloadTaskStateEnum.Paused)) return DownloadTaskStateEnum.Paused;
+            if (children.Any(item => item.State == DownloadTaskStateEnum.Failed)) return DownloadTaskStateEnum.Failed;
+            return DownloadTaskStateEnum.Canceled;
         }
 
         [RelayCommand]
         public async Task StartAll()
         {
-            var ids = DownloadItems.Where(x => x.State == DownloadTaskStateEnum.Paused).Select(x => x.TaskId);
-            foreach (var id in ids)
+            await _semaphoreSlim.WaitAsync();
+            try
             {
-                var item = DownloadItems.FirstOrDefault(x => x.TaskId == id);
-                if (item is null || item.State != DownloadTaskStateEnum.Paused)
+                var tasks = DownloadItems
+                    .Where(item => item.State == DownloadTaskStateEnum.Paused)
+                    .ToList();
+                if (tasks.Count == 0)
+                {
+                    _isQueuePaused = false;
+                    return;
+                }
+
+                await App.DispatcherQueue!.EnqueueAsync(() =>
+                {
+                    foreach (var task in tasks)
+                    {
+                        task.State = DownloadTaskStateEnum.Queued;
+                    }
+                });
+                _isQueuePaused = false;
+                SaveTaskStates(tasks, DownloadTaskStateEnum.Queued);
+            }
+            finally
+            {
+                _semaphoreSlim.Release();
+            }
+        }
+
+        private void SaveTaskStates(IEnumerable<DownloadItemModel> tasks, DownloadTaskStateEnum state)
+        {
+            var collection = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            foreach (var task in tasks)
+            {
+                if (task.TaskId is not > 0)
                 {
                     continue;
                 }
-                await App.DispatcherQueue!.EnqueueAsync(() =>
+
+                var entity = collection.FindById(task.TaskId.Value);
+                if (entity is null)
                 {
-                    item.State = DownloadTaskStateEnum.Queued;
-                });
+                    continue;
+                }
+
+                entity.State = state;
+                collection.Update(entity);
             }
         }
     }

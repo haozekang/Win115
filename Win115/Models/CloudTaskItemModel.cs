@@ -35,7 +35,7 @@ namespace Win115.Models
         /// 任务下载进度
         /// </summary>
         [ObservableProperty]
-        public partial long? PercentDone { get; set; } = 0;
+        public partial double? PercentDone { get; set; } = 0;
 
         /// <summary>
         /// 任务总大小（字节）

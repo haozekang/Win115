@@ -48,7 +48,7 @@ namespace Win115.Dtos
         /// 任务总大小（字节）
         /// </summary>
         [JsonPropertyName("percentDone")]
-        public long? PercentDone { get; set; }
+        public double? PercentDone { get; set; }
 
         /// <summary>
         /// 任务下载进度

@@ -50,6 +50,10 @@
             HorizontalAlignment="Center"
             SelectedIndex="0"
             SelectionMode="Single">
+            <controls:SegmentedItem
+                MinWidth="180"
+                Content="API 设置"
+                Tag="api" />
             <!--<controls:SegmentedItem
                 MinWidth="180"
                 Content="常规设置"
@@ -66,31 +70,75 @@
                 MinWidth="180"
                 Content="下载设置"
                 Tag="download" />
-            <!--<controls:SegmentedItem
+            <controls:SegmentedItem
                 MinWidth="180"
                 Content="上传设置"
-                Tag="upload" />-->
+                Tag="upload" />
         </controls:Segmented>
 
         <controls:SwitchPresenter
             Grid.Row="1"
             Margin="0,10,0,0"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
             Value="{Binding SelectedItem.Tag, ElementName=segmentedControl}">
+            <controls:Case Value="api">
+                <ScrollViewer
+                    Padding="16,0"
+                    HorizontalContentAlignment="Stretch"
+                    animations:Implicit.HideAnimations="{StaticResource HideTransitions}"
+                    animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}"
+                    HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel HorizontalAlignment="Stretch" Spacing="8">
+                        <controls:SettingsCard
+                            Description="限制 115 API 每秒发出的请求数；设为 0 时不限制"
+                            Header="每秒请求数"
+                            HeaderIcon="{ui:FontIcon Glyph='&#xE9D9;'}">
+                            <NumberBox
+                                Width="120"
+                                Maximum="20"
+                                Minimum="0"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Compact"
+                                Value="{x:Bind viewModel.System.ApiRateLimit, Mode=TwoWay}" />
+                        </controls:SettingsCard>
+                        <TextBlock
+                            Margin="4,4,4,0"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="批量操作遇到限流时会自动指数退避并重试，等待时间包含随机抖动。"
+                            TextWrapping="Wrap" />
+                        <Button
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Right"
+                            Command="{x:Bind viewModel.SaveApiSettingsCommand}"
+                            Content="保存设置"
+                            Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </controls:Case>
             <controls:Case Value="system">
                 <ScrollViewer animations:Implicit.HideAnimations="{StaticResource HideTransitions}" animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}">
                     <TextBlock VerticalAlignment="Center" Text="This is the Download panel" />
                 </ScrollViewer>
             </controls:Case>
             <controls:Case Value="download">
-                <StackPanel animations:Implicit.HideAnimations="{StaticResource HideTransitions}" animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}">
-                    <StackPanel Spacing="5">
+                <ScrollViewer
+                    x:Name="downloadSettingsScrollViewer"
+                    Padding="16,0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    animations:Implicit.HideAnimations="{StaticResource HideTransitions}"
+                    animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}"
+                    HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel HorizontalAlignment="Stretch" Spacing="8">
                         <controls:SettingsCard
-                            Description="设置默认的下载路径地址"
+                            Description="新建下载任务默认保存到此目录"
                             Header="默认下载路径"
                             HeaderIcon="{ui:FontIcon Glyph='&#xEB95;'}">
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <TextBox
-                                    Width="400"
+                                    MinWidth="280"
+                                    MaxWidth="520"
                                     IsReadOnly="True"
                                     Text="{x:Bind viewModel.System.DownloadDirPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 <Button Command="{x:Bind viewModel.SelectDownloadDirCommand}">
@@ -98,8 +146,95 @@
                                 </Button>
                             </StackPanel>
                         </controls:SettingsCard>
+                        <controls:SettingsCard
+                            Description="同时运行的下载任务数量，较高数值可能触发 CDN 限流"
+                            Header="同时下载任务数"
+                            HeaderIcon="{ui:FontIcon Glyph='&#xE8EF;'}">
+                            <NumberBox
+                                Width="120"
+                                Maximum="5"
+                                Minimum="1"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Compact"
+                                Value="{x:Bind viewModel.System.DownloadConcurrentTasks, Mode=TwoWay}" />
+                        </controls:SettingsCard>
+                        <controls:SettingsCard
+                            Description="单个大文件使用的连接数；修改后仅影响新任务"
+                            Header="单文件分片数"
+                            HeaderIcon="{ui:FontIcon Glyph='&#xE943;'}">
+                            <NumberBox
+                                Width="120"
+                                Maximum="8"
+                                Minimum="1"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Compact"
+                                Value="{x:Bind viewModel.System.DownloadSegmentCount, Mode=TwoWay}" />
+                        </controls:SettingsCard>
+                        <controls:SettingsCard
+                            Description="所有下载任务共享的速度上限；0 表示不限速"
+                            Header="全局速度限制"
+                            HeaderIcon="{ui:FontIcon Glyph='&#xE9D9;'}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <NumberBox
+                                    Width="150"
+                                    Maximum="1048576"
+                                    Minimum="0"
+                                    SmallChange="512"
+                                    SpinButtonPlacementMode="Compact"
+                                    Value="{x:Bind viewModel.System.DownloadSpeedLimitKbps, Mode=TwoWay}" />
+                                <TextBlock VerticalAlignment="Center" Text="KB/s" />
+                            </StackPanel>
+                        </controls:SettingsCard>
+                        <Button
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Right"
+                            Command="{x:Bind viewModel.SaveDownloadSettingsCommand}"
+                            Content="保存设置"
+                            Style="{StaticResource AccentButtonStyle}" />
                     </StackPanel>
-                </StackPanel>
+                </ScrollViewer>
+            </controls:Case>
+            <controls:Case Value="upload">
+                <ScrollViewer
+                    Padding="16,0"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    animations:Implicit.HideAnimations="{StaticResource HideTransitions}"
+                    animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}"
+                    HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel HorizontalAlignment="Stretch" Spacing="8">
+                        <controls:SettingsCard
+                            Description="上传失败后自动重试的次数，0 表示不自动重试"
+                            Header="最大重试次数"
+                            HeaderIcon="{ui:FontIcon Glyph='&#xE777;'}">
+                            <NumberBox
+                                Width="120"
+                                Maximum="10"
+                                Minimum="0"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Compact"
+                                Value="{x:Bind viewModel.System.UploadMaxRetry, Mode=TwoWay}" />
+                        </controls:SettingsCard>
+                        <controls:SettingsCard
+                            Description="同时运行的上传任务数，较高数值会占用更多网络和系统资源"
+                            Header="并行任务数"
+                            HeaderIcon="{ui:FontIcon Glyph='&#xE8EF;'}">
+                            <NumberBox
+                                Width="120"
+                                Maximum="10"
+                                Minimum="1"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Compact"
+                                Value="{x:Bind viewModel.System.UploadConcurrentTasks, Mode=TwoWay}" />
+                        </controls:SettingsCard>
+                        <Button
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Right"
+                            Command="{x:Bind viewModel.SaveUploadSettingsCommand}"
+                            Content="保存设置"
+                            Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
+                </ScrollViewer>
             </controls:Case>
         </controls:SwitchPresenter>
     </Grid>

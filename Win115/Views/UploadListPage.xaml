@@ -30,7 +30,7 @@
                 Icon="{ui:FontIcon Glyph='&#xEA99;'}"
                 IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
                 ToolTipService.ToolTip="清除已完成" />
-            <!--<AppBarButton
+            <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.PauseAllCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE769;'}"
@@ -41,7 +41,7 @@
                 Command="{x:Bind viewModel.StartAllCommand}"
                 Icon="{ui:FontIcon Glyph='&#xE768;'}"
                 IsEnabled="{x:Bind viewModel.User.IsLogin, Mode=OneWay}"
-                ToolTipService.ToolTip="全部继续" />-->
+                ToolTipService.ToolTip="全部继续" />
         </CommandBar>
         <ListView
             Grid.Row="1"
@@ -65,6 +65,21 @@
                         DesiredWidth="100"
                         FontWeight="Bold" />
                     <controls:DataColumn
+                        MinWidth="100"
+                        Content="速度"
+                        DesiredWidth="100"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="120"
+                        Content="剩余时间"
+                        DesiredWidth="120"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="130"
+                        Content="任务信息"
+                        DesiredWidth="130"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
                         MinWidth="120"
                         Content="操作"
                         DesiredWidth="120"
@@ -74,6 +89,34 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="m:UploadItemModel">
                     <controls:DataRow>
+                        <controls:DataRow.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem
+                                    Command="{x:Bind PauseCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE769;'}"
+                                    Text="暂停"
+                                    Visibility="{x:Bind ShowPauseButton, Mode=OneWay}" />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind StartCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE768;'}"
+                                    Text="恢复"
+                                    Visibility="{x:Bind ShowStartButton, Mode=OneWay}" />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind OpenLocalCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE838;'}"
+                                    Text="打开本地" />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind OpenRemoteCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE753;'}"
+                                    Text="打开远程"
+                                    Visibility="{x:Bind ShowRemoteButton, Mode=OneWay}" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind DeleteCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE74D;'}"
+                                    Text="删除" />
+                            </MenuFlyout>
+                        </controls:DataRow.ContextFlyout>
                         <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
                         <TextBlock
                             VerticalAlignment="Center"
@@ -83,10 +126,37 @@
                             Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             Text="{x:Bind ProgressText, Mode=OneWay}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{x:Bind SpeedText, Mode=OneWay}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{x:Bind RemainingTimeText, Mode=OneWay}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{x:Bind TaskInfoText, Mode=OneWay}" />
                         <StackPanel
                             VerticalAlignment="Center"
                             Orientation="Horizontal"
                             Spacing="5">
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind PauseCommand}"
+                                ToolTipService.ToolTip="暂停"
+                                Visibility="{x:Bind ShowPauseButton, Mode=OneWay}">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE769;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind StartCommand}"
+                                ToolTipService.ToolTip="恢复"
+                                Visibility="{x:Bind ShowStartButton, Mode=OneWay}">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE768;" />
+                                </Button.Content>
+                            </Button>
                             <Button
                                 Padding="5"
                                 Command="{x:Bind OpenLocalCommand}"
@@ -100,7 +170,8 @@
                                 Padding="5"
                                 Command="{x:Bind OpenRemoteCommand}"
                                 Foreground="{ThemeResource AccentFillColorSelectedTextBackgroundBrush}"
-                                ToolTipService.ToolTip="打开远程">
+                                ToolTipService.ToolTip="打开远程"
+                                Visibility="{x:Bind ShowRemoteButton, Mode=OneWay}">
                                 <Button.Content>
                                     <FontIcon FontSize="13" Glyph="&#xE753;" />
                                 </Button.Content>

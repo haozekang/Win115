@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Documents;
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -384,11 +385,192 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            foreach (var f in files)
+            await UploadFiles(files.Select(file => file.Path));
+        }
+
+        /// <summary>
+        /// 选择本地文件夹并将其完整目录结构上传到当前目录。
+        /// </summary>
+        [RelayCommand]
+        public async Task UploadFolder()
+        {
+            if (!User.IsLogin || PathItems.Count == 0)
             {
-                await vm.AddTask(f.Path, $"{PathItems.Last().Id}");
+                return;
             }
-            await App.JumpPage(MenuKeys.UploadList);
+
+            FolderPicker picker = new();
+            picker.FileTypeFilter.Add("*");
+            InitializeWithWindow.Initialize(picker, App.WindowHandle);
+            var folder = await picker.PickSingleFolderAsync();
+            if (folder is null)
+            {
+                return;
+            }
+
+            await UploadFolders([folder.Path]);
+        }
+
+        /// <summary>
+        /// 将本地文件加入当前目录的上传队列。
+        /// </summary>
+        public async Task UploadFiles(IEnumerable<string> filePaths)
+        {
+            if (!User.IsLogin || PathItems.Count == 0)
+            {
+                return;
+            }
+
+            var vm = App.Resolve<UploadListViewModel>();
+            if (vm is null)
+            {
+                return;
+            }
+
+            var added = false;
+            foreach (var filePath in filePaths.Where(File.Exists))
+            {
+                await vm.AddTask(filePath, $"{PathItems.Last().Id}");
+                added = true;
+            }
+
+            if (added)
+            {
+                await App.JumpPage(MenuKeys.UploadList);
+            }
+        }
+
+        /// <summary>
+        /// 将本地文件夹递归上传到当前目录，并保留原始目录结构。
+        /// </summary>
+        public async Task UploadFolders(IEnumerable<string> folderPaths)
+        {
+            if (!User.IsLogin || PathItems.Count == 0)
+            {
+                return;
+            }
+
+            var uploadViewModel = App.Resolve<UploadListViewModel>();
+            var targetDirectoryId = PathItems.Count == 1 ? "0" : $"{PathItems.Last().Id}";
+            var queuedFileCount = 0;
+            var createdFolderCount = 0;
+
+            IsBusy = true;
+            try
+            {
+                foreach (var folderPath in folderPaths.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    var result = await UploadFolderTreeAsync(folderPath, targetDirectoryId, uploadViewModel);
+                    queuedFileCount += result.QueuedFileCount;
+                    createdFolderCount += result.CreatedFolderCount;
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+                await App.ShowMessageBar(
+                    $"文件夹上传任务添加失败：{ex.Message}",
+                    "错误",
+                    InfoBarSeverity.Error,
+                    autoClose: TimeSpan.FromSeconds(8));
+                return;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+
+            if (createdFolderCount == 0)
+            {
+                return;
+            }
+
+            if (queuedFileCount > 0)
+            {
+                await App.JumpPage(MenuKeys.UploadList);
+            }
+            else
+            {
+                await RefreshFiles();
+                await App.ShowMessageBar("文件夹已创建。", "上传完成", autoClose: TimeSpan.FromSeconds(5));
+            }
+        }
+
+        /// <summary>
+        /// 根据拖放项类型分别上传文件和文件夹。
+        /// </summary>
+        public async Task UploadLocalItems(IEnumerable<string> filePaths, IEnumerable<string> folderPaths)
+        {
+            var files = filePaths.Where(File.Exists).ToList();
+            var folders = folderPaths.Where(Directory.Exists).ToList();
+
+            if (folders.Count > 0)
+            {
+                await UploadFolders(folders);
+            }
+
+            if (files.Count > 0)
+            {
+                await UploadFiles(files);
+            }
+        }
+
+        private static async Task<(int QueuedFileCount, int CreatedFolderCount)> UploadFolderTreeAsync(
+            string folderPath,
+            string targetDirectoryId,
+            UploadListViewModel uploadViewModel)
+        {
+            var root = new DirectoryInfo(folderPath);
+            var rootDirectoryId = await CreateRemoteFolderAsync(root.Name, targetDirectoryId);
+            var parentTaskId = await uploadViewModel.BeginFolderTaskAsync(root.Name, root.FullName, targetDirectoryId);
+            var createdFolderCount = 1;
+            var queuedFileCount = 0;
+            long totalSize = 0;
+            var pendingDirectories = new Queue<(DirectoryInfo LocalDirectory, string RemoteDirectoryId)>();
+            pendingDirectories.Enqueue((root, rootDirectoryId));
+
+            while (pendingDirectories.Count > 0)
+            {
+                var current = pendingDirectories.Dequeue();
+                foreach (var directory in current.LocalDirectory.EnumerateDirectories())
+                {
+                    var remoteDirectoryId = await CreateRemoteFolderAsync(directory.Name, current.RemoteDirectoryId);
+                    createdFolderCount++;
+                    pendingDirectories.Enqueue((directory, remoteDirectoryId));
+                }
+
+                foreach (var file in current.LocalDirectory.EnumerateFiles())
+                {
+                    await uploadViewModel.AddTask(file.FullName, current.RemoteDirectoryId, parentTaskId);
+                    queuedFileCount++;
+                    totalSize += file.Length;
+                }
+            }
+
+            uploadViewModel.CompleteFolderCollection(parentTaskId, queuedFileCount, totalSize);
+            return (queuedFileCount, createdFolderCount);
+        }
+
+        private static async Task<string> CreateRemoteFolderAsync(string folderName, string parentDirectoryId)
+        {
+            var request = new RestRequest(ApiResource.OpenFolderAdd);
+            request.AddOrUpdateParameter("pid", parentDirectoryId);
+            request.AddOrUpdateParameter("file_name", folderName);
+            request.AlwaysMultipartFormData = true;
+
+            var response = await App.ProApiClient.PostAsync(request);
+            if (!response.IsSuccessful || response.Content.IsBlank())
+            {
+                throw new InvalidOperationException($"无法创建远端文件夹“{folderName}”。");
+            }
+
+            var dto = JsonSerializer.Deserialize<ProResponseDTO<OpenFolderAddDTO>>(response.Content);
+            if (dto is null || !dto.State || dto.Data?.FileId.IsBlank() != false)
+            {
+                throw new InvalidOperationException(dto?.Message ?? $"无法创建远端文件夹“{folderName}”。");
+            }
+
+            return dto.Data.FileId!;
         }
 
         /// <summary>
@@ -427,27 +609,8 @@ namespace Win115.ViewModels
             var deferral = args.GetDeferral();
             try
             {
-                var req = new RestRequest(ApiResource.OpenFolderAdd);
-                if (PathItems.Count == 1)
-                {
-                    req.AddOrUpdateParameter("pid", "0");
-                }
-                else
-                {
-                    req.AddOrUpdateParameter("pid", PathItems.Last().Id);
-                }
-                req.AddOrUpdateParameter("file_name", vm.FileName);
-                req.AlwaysMultipartFormData = true;
-                var res = await App.ProApiClient.PostAsync(req);
-                if (!res.IsSuccessful || res.Content.IsBlank())
-                {
-                    return;
-                }
-                var dto = JsonSerializer.Deserialize<ProResponseDTO<OpenFolderAddDTO>>(res.Content);
-                if (dto is null || !dto.State || dto.Data is null)
-                {
-                    return;
-                }
+                var parentDirectoryId = PathItems.Count == 1 ? "0" : $"{PathItems.Last().Id}";
+                await CreateRemoteFolderAsync(vm.FileName, parentDirectoryId);
                 await RefreshFiles();
             }
             catch (Exception ex)
@@ -479,17 +642,7 @@ namespace Win115.ViewModels
                 await App.ShowMessageBar("请先在设置中设定下载默认目录！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
                 return;
             }
-            bool add = false;
-            foreach (var item in SelectedFileItems)
-            {
-                // 目录暂不支持
-                if (item.FileType == "0")
-                {
-                    continue;
-                }
-                add = true;
-                await _downloadListViewModel.AddTask(item.PickCode!, item.Name!, item.Size, System.DownloadDirPath);
-            }
+            bool add = await AddDownloadTasksAsync(SelectedFileItems, System.DownloadDirPath);
             if (add)
             {
                 await App.JumpPage(MenuKeys.DownloadList);
@@ -515,29 +668,18 @@ namespace Win115.ViewModels
                 await App.ShowMessageBar("请先在设置中设定下载默认目录！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
                 return;
             }
-            bool add = false;
+            bool add;
             if (SelectedFileItems.IsNotBlank())
             {
-                foreach (var s in SelectedFileItems)
-                {
-                    // 目录暂不支持
-                    if (s.FileType == "0")
-                    {
-                        continue;
-                    }
-                    add = true;
-                    await _downloadListViewModel.AddTask(s.PickCode!, s.Name!, s.Size, System.DownloadDirPath);
-                }
+                add = await AddDownloadTasksAsync(SelectedFileItems, System.DownloadDirPath);
             }
             else if (item is MyFileItemModel _item)
             {
-                if (_item.FileType == "0")
-                {
-                    await App.ShowMessageBar("尚未支持目录下载！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
-                    return;
-                }
-                add = true;
-                await _downloadListViewModel.AddTask(_item.PickCode!, _item.Name!, _item.Size, System.DownloadDirPath);
+                add = await AddDownloadTasksAsync([_item], System.DownloadDirPath);
+            }
+            else
+            {
+                add = false;
             }
             if (add)
             {
@@ -567,34 +709,157 @@ namespace Win115.ViewModels
             {
                 return;
             }
-            bool add = false;
+            bool add;
             if (SelectedFileItems.IsNotBlank())
             {
-                foreach (var s in SelectedFileItems)
-                {
-                    // 目录暂不支持
-                    if (s.FileType == "0")
-                    {
-                        continue;
-                    }
-                    add = true;
-                    await _downloadListViewModel.AddTask(s.PickCode!, s.Name!, s.Size, folder.Path);
-                }
+                add = await AddDownloadTasksAsync(SelectedFileItems, folder.Path);
             }
             else if (item is MyFileItemModel _item)
             {
-                if (_item.FileType == "0")
-                {
-                    await App.ShowMessageBar("尚未支持目录下载！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
-                    return;
-                }
-                add = true;
-                await _downloadListViewModel.AddTask(_item.PickCode!, _item.Name!, _item.Size, folder.Path);
+                add = await AddDownloadTasksAsync([_item], folder.Path);
+            }
+            else
+            {
+                add = false;
             }
             if (add)
             {
                 await App.JumpPage(MenuKeys.DownloadList);
             }
+        }
+
+        private async Task<bool> AddDownloadTasksAsync(IEnumerable<MyFileItemModel> items, string targetDirectory)
+        {
+            var added = false;
+            IsBusy = true;
+            try
+            {
+                foreach (var item in items.ToList())
+                {
+                    if (item.FileType == "0")
+                    {
+                        added |= await AddFolderDownloadTasksAsync(item, targetDirectory);
+                    }
+                    else if (item.PickCode.IsNotBlank() && item.Name.IsNotBlank())
+                    {
+                        await _downloadListViewModel.AddTask(
+                            item.PickCode!,
+                            SanitizePathSegment(item.Name!),
+                            item.Size,
+                            targetDirectory);
+                        added = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+                await App.ShowMessageBar("获取文件夹内容失败，请稍后重试。", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+
+            return added;
+        }
+
+        private async Task<bool> AddFolderDownloadTasksAsync(MyFileItemModel folder, string targetDirectory)
+        {
+            if (folder.Id.IsBlank() || folder.Name.IsBlank())
+            {
+                return false;
+            }
+
+            const int pageSize = 1150;
+            var rootDirectory = Path.Combine(targetDirectory, SanitizePathSegment(folder.Name!));
+            Directory.CreateDirectory(rootDirectory);
+            var parentTaskId = await _downloadListViewModel.BeginFolderTaskAsync(folder.Name!, rootDirectory);
+
+            var pendingFolders = new Queue<(string Id, string Directory)>();
+            pendingFolders.Enqueue((folder.Id!, rootDirectory));
+            var added = false;
+            var totalFiles = 0;
+            long totalSize = 0;
+
+            while (pendingFolders.Count > 0)
+            {
+                var current = pendingFolders.Dequeue();
+                long offset = 0;
+                long totalCount;
+                FDataDTO[] entries;
+                do
+                {
+                    var dto = await GetFolderPageAsync(current.Id, offset, pageSize);
+                    entries = dto.Data ?? [];
+                    totalCount = dto.Count ?? entries.LongLength;
+
+                    foreach (var entry in entries)
+                    {
+                        if (entry.FN.IsBlank())
+                        {
+                            continue;
+                        }
+
+                        var safeName = SanitizePathSegment(entry.FN!);
+                        if (entry.FC == "0")
+                        {
+                            if (entry.FId.IsBlank())
+                            {
+                                continue;
+                            }
+
+                            var childDirectory = Path.Combine(current.Directory, safeName);
+                            Directory.CreateDirectory(childDirectory);
+                            pendingFolders.Enqueue((entry.FId!, childDirectory));
+                        }
+                        else if (entry.PC.IsNotBlank())
+                        {
+                            await _downloadListViewModel.AddTask(entry.PC!, safeName, entry.FS, current.Directory, parentTaskId: parentTaskId);
+                            added = true;
+                            totalFiles++;
+                            totalSize += entry.FS ?? 0;
+                        }
+                    }
+
+                    offset += entries.LongLength;
+                }
+                while (offset < totalCount && entries.Length > 0);
+            }
+
+            _downloadListViewModel.CompleteFolderCollection(parentTaskId, totalFiles, totalSize);
+            return added;
+        }
+
+        private static async Task<OpenUfileFilesDTO> GetFolderPageAsync(string folderId, long offset, int limit)
+        {
+            var request = new RestRequest(ApiResource.OpenUfileFiles);
+            request.AddQueryParameter("cid", folderId);
+            request.AddQueryParameter("limit", limit);
+            request.AddQueryParameter("offset", offset);
+            request.AddQueryParameter("show_dir", 1);
+
+            var response = await App.ProApiClient.GetAsync(request);
+            if (!response.IsSuccessful || response.Content.IsBlank())
+            {
+                throw new InvalidOperationException("Failed to retrieve the folder contents.");
+            }
+
+            var dto = JsonSerializer.Deserialize<OpenUfileFilesDTO>(response.Content);
+            if (dto is null || !dto.State)
+            {
+                throw new InvalidOperationException(dto?.Message ?? "Failed to retrieve the folder contents.");
+            }
+
+            return dto;
+        }
+
+        private static string SanitizePathSegment(string value)
+        {
+            var invalidCharacters = Path.GetInvalidFileNameChars();
+            var sanitized = new string(value.Select(character => invalidCharacters.Contains(character) ? '_' : character).ToArray()).Trim();
+            sanitized = sanitized.TrimEnd('.');
+            return sanitized is "" or "." or ".." ? "_" : sanitized;
         }
 
         /// <summary>

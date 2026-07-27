@@ -28,7 +28,22 @@ namespace Win115.Models
         [NotifyPropertyChangedFor(nameof(SizeText))]
         public partial long? Size { get; set; } = 0;
 
-        public string? SizeText => Size > 0 ? StringHelper.FormatFileSize(Size) : "-";
+        public string? SizeText => IsFolder && TotalFiles is > 0
+            ? $"{StringHelper.FormatFileSize(Size)} · {TotalFiles} 个文件"
+            : Size > 0 ? StringHelper.FormatFileSize(Size) : "-";
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SizeText))]
+        [NotifyPropertyChangedFor(nameof(TaskInfoText))]
+        public partial bool IsFolder { get; set; }
+
+        [ObservableProperty]
+        public partial int? ParentTaskId { get; set; }
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SizeText))]
+        [NotifyPropertyChangedFor(nameof(TaskInfoText))]
+        public partial int? TotalFiles { get; set; }
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ProgressText))]
@@ -42,6 +57,18 @@ namespace Win115.Models
         public string? SpeedText => Speed > 0 ? StringHelper.FormatDownloadSpeed(Speed) : "-";
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(RemainingTimeText))]
+        public partial TimeSpan? RemainingTime { get; set; }
+
+        public string RemainingTimeText => RemainingTime is { } remaining && remaining > TimeSpan.Zero
+            ? $"剩余 {StringHelper.FormatTimeSpan(remaining)}"
+            : "-";
+
+        public string TaskInfoText => IsFolder && TotalFiles is > 0
+            ? $"{StateText} · {TotalFiles} 个文件"
+            : StateText ?? "-";
+
+        [ObservableProperty]
         public partial string? Url { get; set; } = string.Empty;
 
         [ObservableProperty]
@@ -52,9 +79,12 @@ namespace Win115.Models
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(StateText))]
+        [NotifyPropertyChangedFor(nameof(TaskInfoText))]
         [NotifyPropertyChangedFor(nameof(ShowPauseButton))]
         [NotifyPropertyChangedFor(nameof(ShowStartButton))]
         [NotifyPropertyChangedFor(nameof(ShowRestartButton))]
+        [NotifyPropertyChangedFor(nameof(ShowOpenButton))]
+        [NotifyPropertyChangedFor(nameof(ShowActionSeparator))]
         public partial DownloadTaskStateEnum State { get; set; } = DownloadTaskStateEnum.Canceled;
         public string? StateText => State switch 
         {
@@ -72,6 +102,12 @@ namespace Win115.Models
         public Visibility ShowStartButton => State == DownloadTaskStateEnum.Paused ? Visibility.Visible : Visibility.Collapsed;
 
         public Visibility ShowRestartButton => State == DownloadTaskStateEnum.Failed || State == DownloadTaskStateEnum.Canceled ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility ShowOpenButton => State == DownloadTaskStateEnum.Completed ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility ShowActionSeparator => ShowPauseButton == Visibility.Visible || ShowStartButton == Visibility.Visible
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         [ObservableProperty]
         public partial bool ShowDeleteTip { get; set; } = false;
@@ -97,6 +133,35 @@ namespace Win115.Models
         }
 
         [RelayCommand]
+        private async Task OpenFolder()
+        {
+            if (SavePath.IsBlank())
+            {
+                return;
+            }
+
+            var folderPath = Path.GetDirectoryName(SavePath);
+            if (folderPath.IsBlank() || !Directory.Exists(folderPath))
+            {
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = File.Exists(SavePath) ? $"/select,\"{SavePath}\"" : $"\"{folderPath}\"",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+            }
+        }
+
+        [RelayCommand]
         private async Task Pause()
         {
             if (State != DownloadTaskStateEnum.Downloading)
@@ -117,8 +182,25 @@ namespace Win115.Models
         }
 
         [RelayCommand]
-        private async Task Restart()
+        private Task Restart()
         {
+            if (State != DownloadTaskStateEnum.Failed && State != DownloadTaskStateEnum.Canceled)
+            {
+                return Task.CompletedTask;
+            }
+
+            var database = App.Resolve<LiteDatabase>();
+            var collection = database.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
+            var entity = TaskId is > 0 ? collection.FindById(TaskId) : null;
+            if (entity is not null)
+            {
+                entity.State = DownloadTaskStateEnum.Queued;
+                collection.Update(entity);
+            }
+
+            Speed = 0;
+            State = DownloadTaskStateEnum.Queued;
+            return Task.CompletedTask;
         }
 
         [RelayCommand]

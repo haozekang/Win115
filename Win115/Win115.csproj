@@ -79,10 +79,8 @@
 		<PackageReference Include="LiteDB" Version="5.0.21" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="QRCoder" Version="1.8.0" />
 		<PackageReference Include="RestSharp" Version="114.0.0" />
-		<PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="114.0.0" />
 		<PackageReference Include="Tanovo.ExtensionMethods" Version="1.0.4" />
 		<PackageReference Include="WinUIEx" Version="2.9.1" />
 	</ItemGroup>

@@ -13,8 +13,24 @@
     Margin="5,5,5,5"
     d:DataContext="{d:DesignInstance vm:MyFilesViewModel,
                                      IsDesignTimeCreatable=False}"
+    AllowDrop="True"
+    DragEnter="FilesGrid_DragEnter"
+    DragLeave="FilesGrid_DragLeave"
+    DragOver="FilesGrid_DragOver"
+    Drop="FilesGrid_Drop"
     mc:Ignorable="d">
     <Page.Resources>
+        <Style x:Key="upload_menu_presenter_style" TargetType="MenuFlyoutPresenter">
+            <Setter Property="Margin" Value="0,-22,0,0" />
+        </Style>
+        <MenuFlyout
+            x:Key="upload_menu"
+            MenuFlyoutPresenterStyle="{StaticResource upload_menu_presenter_style}"
+            Placement="Bottom"
+            ShowMode="Transient">
+            <MenuFlyoutItem Command="{x:Bind viewModel.UploadFileCommand}" Text="上传文件" />
+            <MenuFlyoutItem Command="{x:Bind viewModel.UploadFolderCommand}" Text="上传文件夹" />
+        </MenuFlyout>
         <MenuFlyout x:Key="item_menu" Opening="item_menu_Opening">
             <MenuFlyoutItem
                 Click="menu_open_Click"
@@ -44,6 +60,13 @@
                 Icon="{ui:FontIcon Glyph='&#xE898;'}"
                 Tag="upload"
                 Text="上传文件"
+                Visibility="{Binding IsOnlyDirVisibility}" />
+            <MenuFlyoutItem
+                Command="{x:Bind viewModel.UploadFolderCommand}"
+                CommandParameter="{Binding .}"
+                Icon="{ui:FontIcon Glyph='&#xE898;'}"
+                Tag="upload"
+                Text="上传文件夹"
                 Visibility="{Binding IsOnlyDirVisibility}" />
             <MenuFlyoutSeparator />
             <MenuFlyoutItem
@@ -322,11 +345,12 @@
                 IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
                 ToolTipService.ToolTip="新建文件夹" />
             <AppBarButton
+                x:Name="uploadButton"
                 Width="45"
-                Command="{x:Bind viewModel.UploadFileCommand}"
+                Flyout="{StaticResource upload_menu}"
                 Icon="Upload"
                 IsEnabled="{x:Bind viewModel.CanDo, Mode=OneWay}"
-                ToolTipService.ToolTip="上传" />
+                ToolTipService.ToolTip="上传文件" />
             <AppBarButton
                 Width="45"
                 Command="{x:Bind viewModel.DownloadSelectedCommand}"
@@ -403,6 +427,10 @@
                         Tag="upload"
                         Text="上传文件"
                         Visibility="{Binding IsOnlyDirVisibility}" />
+                    <MenuFlyoutItem
+                        Command="{x:Bind viewModel.UploadFolderCommand}"
+                        Icon="{ui:FontIcon Glyph='&#xE8B7;'}"
+                        Text="上传文件夹" />
                 </MenuFlyout>
             </Grid.ContextFlyout>
             <ProgressRing
@@ -544,6 +572,31 @@
                 </ListView.ItemTemplate>
             </ListView>
         </Grid>
+        <Border
+            x:Name="dragDropOverlay"
+            Grid.RowSpan="4"
+            Margin="12"
+            Background="#CCFFFFFF"
+            BorderBrush="{ThemeResource SystemControlHighlightAccentBrush}"
+            BorderThickness="2"
+            Canvas.ZIndex="100"
+            CornerRadius="8"
+            Visibility="Collapsed">
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="8">
+                <FontIcon
+                    HorizontalAlignment="Center"
+                    FontSize="36"
+                    Glyph="&#xE898;" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="20"
+                    FontWeight="SemiBold"
+                    Text="将文件或文件夹拖到此处上传" />
+            </StackPanel>
+        </Border>
         <StackPanel
             Grid.Row="3"
             Margin="10,5,10,5"

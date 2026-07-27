@@ -8,7 +8,8 @@ namespace Win115.Dtos
         public string? FileName { get; set; }
 
         [JsonPropertyName("file_size")]
-        public string? FileSize { get; set; }
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+        public long? FileSize { get; set; }
 
         [JsonPropertyName("pick_code")]
         public string? PickCode { get; set; }

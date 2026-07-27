@@ -14,6 +14,8 @@ using Tanovo.ExtensionMethods;
 using Win115.Models;
 using Win115.ViewModels;
 using WinUIEx;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -499,19 +501,7 @@ namespace Win115.Views
                             item.Visibility = Visibility.Collapsed;
                         }
                     }
-                    // 暂不支持目录下载
-                    if (file.FileType == "0")
-                    {
-                        if ((item.Tag as string) == "downloadTo")
-                        {
-                            item.Visibility = Visibility.Collapsed;
-                        }
-                        else if ((item.Tag as string) == "download")
-                        {
-                            item.Visibility = Visibility.Collapsed;
-                        }
-                    }
-                    else if (file.FileType == "1")
+                    if (file.FileType == "1")
                     {
                         if ((item.Tag as string) == "open")
                         {
@@ -561,5 +551,49 @@ namespace Win115.Views
                 await viewModel.ParentDirectoryCommand.ExecuteAsync(null);
             }
         }
+
+        private void FilesGrid_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                e.AcceptedOperation = DataPackageOperation.Copy;
+                e.DragUIOverride.Caption = "上传文件或文件夹";
+            }
+            else
+            {
+                e.AcceptedOperation = DataPackageOperation.None;
+            }
+        }
+
+        private void FilesGrid_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                dragDropOverlay.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void FilesGrid_DragLeave(object sender, DragEventArgs e)
+        {
+            dragDropOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private async void FilesGrid_Drop(object sender, DragEventArgs e)
+        {
+            dragDropOverlay.Visibility = Visibility.Collapsed;
+            if (viewModel is null || !e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                return;
+            }
+
+            var items = await e.DataView.GetStorageItemsAsync();
+            var filePaths = items.OfType<StorageFile>().Select(file => file.Path).ToList();
+            var folderPaths = items.OfType<StorageFolder>().Select(folder => folder.Path).ToList();
+            if (filePaths.Count > 0 || folderPaths.Count > 0)
+            {
+                await viewModel.UploadLocalItems(filePaths, folderPaths);
+            }
+        }
+
     }
 }

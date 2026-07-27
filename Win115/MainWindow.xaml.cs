@@ -8,11 +8,13 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
 using Win115.Entities;
 using Win115.Enums;
 using Win115.Models;
+using Win115.Services;
 using Win115.Properties;
 using Win115.ViewModels;
 using Win115.Views;
@@ -29,7 +31,12 @@ namespace Win115
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        private MainViewModel viewModel;
+        private const int RestoreWindowCommand = 9;
+
+        private readonly AppWindow _appWindow;
+        private readonly MainViewModel viewModel;
+        private bool _isExitConfirmationOpen;
+        private bool _isExitAllowed;
 
         public MainWindow()
         {
@@ -43,16 +50,104 @@ namespace Win115
 
             var hwnd = WindowNative.GetWindowHandle(this);
             var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-            var appWindow = AppWindow.GetFromWindowId(windowId);
+            _appWindow = AppWindow.GetFromWindowId(windowId);
 
-            if (appWindow.Presenter is OverlappedPresenter presenter)
+            if (_appWindow.Presenter is OverlappedPresenter presenter)
             {
                 presenter.SetBorderAndTitleBar(true, false);
             }
             viewModel.SelectedItem = viewModel.MenuItems?.FirstOrDefault();
-            appWindow.SetIcon("Assets/favicon.ico");
+            _appWindow.SetIcon("Assets/favicon.ico");
+            _appWindow.Closing += AppWindow_Closing;
 
             _ = LoadSystemConfigAsync();
+        }
+
+        public void ShowAndActivate()
+        {
+            var windowHandle = WindowNative.GetWindowHandle(this);
+            _appWindow.Show();
+            ShowWindow(windowHandle, RestoreWindowCommand);
+            Activate();
+            SetForegroundWindow(windowHandle);
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow(nint windowHandle, int command);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetForegroundWindow(nint windowHandle);
+
+        private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
+        {
+            if (_isExitAllowed || !HasActiveTransferTasks())
+            {
+                return;
+            }
+
+            args.Cancel = true;
+            if (_isExitConfirmationOpen)
+            {
+                return;
+            }
+
+            _isExitConfirmationOpen = true;
+            _ = ConfirmExitAsync();
+        }
+
+        private bool HasActiveTransferTasks()
+        {
+            var downloadViewModel = App.Resolve<DownloadListViewModel>();
+            var uploadViewModel = App.Resolve<UploadListViewModel>();
+
+            return downloadViewModel.DownloadItems.Any(item =>
+                       item.State is DownloadTaskStateEnum.Downloading or DownloadTaskStateEnum.Queued)
+                || uploadViewModel.UploadItems.Any(item =>
+                       item.State is UploadTaskStateEnum.Uploading
+                           or UploadTaskStateEnum.CalcHash
+                           or UploadTaskStateEnum.Queued);
+        }
+
+        private async Task ConfirmExitAsync()
+        {
+            try
+            {
+                var dialog = new ContentDialog
+                {
+                    Title = "提示",
+                    Content = "当前有正在进行的传输任务，退出前将统一暂停这些任务。确定退出？",
+                    PrimaryButtonText = "退出",
+                    CloseButtonText = "取消",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = Content.XamlRoot
+                };
+
+                if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+                {
+                    return;
+                }
+
+                var downloadViewModel = App.Resolve<DownloadListViewModel>();
+                var uploadViewModel = App.Resolve<UploadListViewModel>();
+                await Task.WhenAll(downloadViewModel.PauseAll(), uploadViewModel.PauseAll());
+
+                _isExitAllowed = true;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                await ShowMessageBar(
+                    $"暂停传输任务失败，应用未退出：{ex.Message}",
+                    "退出失败",
+                    InfoBarSeverity.Error,
+                    autoClose: TimeSpan.FromSeconds(5));
+            }
+            finally
+            {
+                _isExitConfirmationOpen = false;
+            }
         }
 
         private async Task LoadSystemConfigAsync()
@@ -64,6 +159,7 @@ namespace Win115
                 return;
             }
             var col = _db.GetCollection<SystemEntity>(CollectionResource.System);
+            var apiRateLimit = ReadIntSetting(col, ApiSettings.RateLimitKey, ApiSettings.DefaultRateLimit);
             var downloadDirPath = col.Query().Where(x => x.Type == SystemConfigTypeResource.DownloadDirPath).SingleOrDefault();
             if (downloadDirPath is not null)
             {
@@ -72,6 +168,33 @@ namespace Win115
                     _system.DownloadDirPath = downloadDirPath.Value;
                 });
             }
+
+            var concurrentTasks = ReadIntSetting(col, DownloadSettings.ConcurrentTasksKey, DownloadSettings.DefaultConcurrentTasks);
+            var segmentCount = ReadIntSetting(col, DownloadSettings.SegmentCountKey, DownloadSettings.DefaultSegmentCount);
+            var speedLimit = ReadIntSetting(col, DownloadSettings.SpeedLimitKey, 0);
+            var uploadMaxRetry = ReadIntSetting(col, UploadSettings.MaxRetryKey, UploadSettings.DefaultMaxRetry);
+            var uploadConcurrentTasks = ReadIntSetting(
+                col,
+                UploadSettings.MaxConcurrentTasksKey,
+                UploadSettings.DefaultMaxConcurrentTasks);
+            await DispatcherQueue.EnqueueAsync(() =>
+            {
+                _system.ApiRateLimit = Math.Clamp(apiRateLimit, 0, ApiSettings.MaxRateLimit);
+                _system.DownloadConcurrentTasks = Math.Clamp(concurrentTasks, 1, DownloadSettings.MaxConcurrentTasks);
+                _system.DownloadSegmentCount = Math.Clamp(segmentCount, 1, DownloadSettings.MaxSegmentCount);
+                _system.DownloadSpeedLimitKbps = Math.Max(0, speedLimit);
+                _system.UploadMaxRetry = Math.Clamp(uploadMaxRetry, 0, UploadSettings.MaxRetry);
+                _system.UploadConcurrentTasks = Math.Clamp(
+                    uploadConcurrentTasks,
+                    1,
+                    UploadSettings.MaxConcurrentTasks);
+            });
+        }
+
+        private static int ReadIntSetting(ILiteCollection<SystemEntity> collection, string key, int defaultValue)
+        {
+            var setting = collection.Query().Where(item => item.Type == key).SingleOrDefault();
+            return int.TryParse(setting?.Value, out var value) ? value : defaultValue;
         }
 
         private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
@@ -118,8 +241,7 @@ namespace Win115
 
         private void btn_close_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
-            Environment.Exit(0);
+            Close();
         }
 
         private void btn_min_Click(object sender, RoutedEventArgs e)

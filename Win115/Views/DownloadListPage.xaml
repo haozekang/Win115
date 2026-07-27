@@ -71,9 +71,14 @@
                         DesiredWidth="80"
                         FontWeight="Bold" />
                     <controls:DataColumn
-                        MinWidth="80"
-                        Content="状态"
-                        DesiredWidth="80"
+                        MinWidth="120"
+                        Content="剩余时间"
+                        DesiredWidth="120"
+                        FontWeight="Bold" />
+                    <controls:DataColumn
+                        MinWidth="130"
+                        Content="任务信息"
+                        DesiredWidth="130"
                         FontWeight="Bold" />
                     <controls:DataColumn
                         MinWidth="120"
@@ -85,6 +90,36 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="m:DownloadItemModel">
                     <controls:DataRow>
+                        <controls:DataRow.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem
+                                    Command="{x:Bind OpenCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE838;'}"
+                                    Text="打开"
+                                    Visibility="{x:Bind ShowOpenButton, Mode=OneWay}" />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind OpenFolderCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE8B7;'}"
+                                    Text="打开所在文件夹" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind PauseCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE769;'}"
+                                    Text="暂停"
+                                    Visibility="{x:Bind ShowPauseButton, Mode=OneWay}" />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind StartCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE768;'}"
+                                    Text="继续"
+                                    Visibility="{x:Bind ShowStartButton, Mode=OneWay}" />
+                                <MenuFlyoutSeparator Visibility="{x:Bind ShowActionSeparator, Mode=OneWay}" />
+                                <MenuFlyoutItem
+                                    Command="{x:Bind DeleteCommand}"
+                                    Foreground="Red"
+                                    Icon="{ui:FontIcon Glyph='&#xE74D;'}"
+                                    Text="删除" />
+                            </MenuFlyout>
+                        </controls:DataRow.ContextFlyout>
                         <TextBlock VerticalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" />
                         <TextBlock
                             VerticalAlignment="Center"
@@ -101,7 +136,11 @@
                         <TextBlock
                             Margin="0,0,0,0"
                             VerticalAlignment="Center"
-                            Text="{x:Bind StateText, Mode=OneWay}" />
+                            Text="{x:Bind RemainingTimeText, Mode=OneWay}" />
+                        <TextBlock
+                            Margin="0,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Bind TaskInfoText, Mode=OneWay}" />
                         <StackPanel
                             VerticalAlignment="Center"
                             Orientation="Horizontal"
@@ -110,9 +149,18 @@
                                 Padding="5"
                                 Command="{x:Bind OpenCommand}"
                                 Foreground="{ThemeResource TextSelectionHighlightColorThemeBrush}"
-                                ToolTipService.ToolTip="打开">
+                                ToolTipService.ToolTip="打开"
+                                Visibility="{x:Bind ShowOpenButton, Mode=OneWay}">
                                 <Button.Content>
                                     <FontIcon FontSize="13" Glyph="&#xE838;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind OpenFolderCommand}"
+                                ToolTipService.ToolTip="打开所在文件夹">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE8B7;" />
                                 </Button.Content>
                             </Button>
                             <Button
