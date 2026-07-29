@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
 using Win115.Entities;
+using Win115.Enums;
 using Win115.Handlers;
 using Win115.Models;
 
@@ -78,12 +79,36 @@ namespace Win115.Services
             output.SetLength(expectedSize);
 
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var progressTask = ReportProgressAsync(segments, expectedSize, shouldContinue, reportProgressAsync, linkedCancellation.Token);
+            using var reportLock = new SemaphoreSlim(1, 1);
+            async Task ReportSnapshotAsync(long bytesPerSecond)
+            {
+                await reportLock.WaitAsync();
+                try
+                {
+                    await reportProgressAsync(new DownloadProgress(
+                        segments.Sum(segment => segment.Downloaded),
+                        expectedSize,
+                        bytesPerSecond,
+                        CloneSegments(segments)));
+                }
+                finally
+                {
+                    reportLock.Release();
+                }
+            }
+
+            var progressTask = ReportProgressAsync(segments, expectedSize, shouldContinue, ReportSnapshotAsync, linkedCancellation.Token);
             try
             {
                 var downloads = segments
                     .Where(segment => segment.Downloaded < segment.End - segment.Start + 1)
-                    .Select(segment => DownloadSegmentWithRetryAsync(uri, output.SafeFileHandle, segment, shouldContinue, linkedCancellation.Token));
+                    .Select(segment => DownloadSegmentWithRetryAsync(
+                        uri,
+                        output.SafeFileHandle,
+                        segment,
+                        shouldContinue,
+                        () => ReportSnapshotAsync(0),
+                        linkedCancellation.Token));
                 await Task.WhenAll(downloads);
             }
             finally
@@ -98,8 +123,17 @@ namespace Win115.Services
                 }
             }
 
+            foreach (var segment in segments.Where(segment =>
+                segment.State == DownloadSegmentStateEnum.Downloading ||
+                segment.State == DownloadSegmentStateEnum.Pending))
+            {
+                segment.State = shouldContinue()
+                    ? DownloadSegmentStateEnum.Completed
+                    : DownloadSegmentStateEnum.Paused;
+            }
+
             var downloaded = segments.Sum(segment => segment.Downloaded);
-            await reportProgressAsync(new DownloadProgress(downloaded, expectedSize, 0, CloneSegments(segments)));
+            await ReportSnapshotAsync(0);
             return new DownloadResult(downloaded == expectedSize, downloaded, CloneSegments(segments));
         }
 
@@ -134,11 +168,20 @@ namespace Win115.Services
             bool supportsRanges,
             int configuredSegmentCount)
         {
-            if (supportsRanges && persistedSegments?.Count > 0 && persistedSegments.All(segment =>
-                segment.Start >= 0 && segment.End >= segment.Start && segment.End < fileSize &&
-                segment.Downloaded >= 0 && segment.Downloaded <= segment.End - segment.Start + 1))
+            if (supportsRanges && HasValidSegments(persistedSegments, fileSize))
             {
-                return persistedSegments.Select(CloneSegment).OrderBy(segment => segment.Index).ToList();
+                return persistedSegments!
+                    .Select(CloneSegment)
+                    .OrderBy(segment => segment.Start)
+                    .Select((segment, index) =>
+                    {
+                        segment.Index = index;
+                        segment.State = segment.Downloaded == segment.End - segment.Start + 1
+                            ? DownloadSegmentStateEnum.Completed
+                            : DownloadSegmentStateEnum.Pending;
+                        return segment;
+                    })
+                    .ToList();
             }
 
             var completedPrefix = supportsRanges ? Math.Clamp(legacyDownloadedSize, 0, fileSize) : 0;
@@ -169,23 +212,59 @@ namespace Win115.Services
             return result;
         }
 
+        private static bool HasValidSegments(IReadOnlyCollection<DownloadSegmentEntity>? segments, long fileSize)
+        {
+            if (segments is not { Count: > 0 })
+            {
+                return false;
+            }
+
+            var ordered = segments.OrderBy(segment => segment.Start).ToList();
+            if (ordered[0].Start != 0 || ordered[^1].End != fileSize - 1)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < ordered.Count; index++)
+            {
+                var segment = ordered[index];
+                if (segment.End < segment.Start || segment.End >= fileSize ||
+                    segment.Downloaded < 0 || segment.Downloaded > segment.End - segment.Start + 1 ||
+                    (index > 0 && ordered[index - 1].End + 1 != segment.Start))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private async Task DownloadSegmentWithRetryAsync(
             Uri uri,
             SafeFileHandle fileHandle,
             DownloadSegmentEntity segment,
             Func<bool> shouldContinue,
+            Func<Task> reportStateAsync,
             CancellationToken cancellationToken)
         {
+            segment.State = DownloadSegmentStateEnum.Downloading;
+            await reportStateAsync();
             for (var attempt = 0; ; attempt++)
             {
                 if (!shouldContinue())
                 {
+                    segment.State = DownloadSegmentStateEnum.Paused;
+                    await reportStateAsync();
                     return;
                 }
 
                 try
                 {
                     await DownloadSegmentAsync(uri, fileHandle, segment, shouldContinue, cancellationToken);
+                    segment.State = segment.Downloaded == segment.End - segment.Start + 1
+                        ? DownloadSegmentStateEnum.Completed
+                        : DownloadSegmentStateEnum.Paused;
+                    await reportStateAsync();
                     return;
                 }
                 catch (Exception ex) when (IsRetryable(ex) && attempt < MaxRetryCount && shouldContinue())
@@ -194,6 +273,14 @@ namespace Win115.Services
                     await Task.Delay(
                         TimeSpan.FromMilliseconds(1000 * Math.Pow(2, attempt) + jitterMilliseconds),
                         cancellationToken);
+                }
+                catch
+                {
+                    segment.State = shouldContinue()
+                        ? DownloadSegmentStateEnum.Failed
+                        : DownloadSegmentStateEnum.Paused;
+                    await reportStateAsync();
+                    throw;
                 }
             }
         }
@@ -310,7 +397,7 @@ namespace Win115.Services
             IReadOnlyCollection<DownloadSegmentEntity> segments,
             long totalBytes,
             Func<bool> shouldContinue,
-            Func<DownloadProgress, Task> reportProgressAsync,
+            Func<long, Task> reportProgressAsync,
             CancellationToken cancellationToken)
         {
             var previousBytes = segments.Sum(segment => segment.Downloaded);
@@ -322,7 +409,7 @@ namespace Win115.Services
                 var now = DateTime.UtcNow;
                 var seconds = Math.Max(0.001, (now - previousTime).TotalSeconds);
                 var speed = (long)Math.Max(0, (currentBytes - previousBytes) / seconds);
-                await reportProgressAsync(new DownloadProgress(currentBytes, totalBytes, speed, CloneSegments(segments)));
+                await reportProgressAsync(speed);
                 previousBytes = currentBytes;
                 previousTime = now;
             }
@@ -338,6 +425,7 @@ namespace Win115.Services
             Index = segment.Index,
             Start = segment.Start,
             End = segment.End,
+            State = segment.State,
             Downloaded = segment.Downloaded
         };
     }

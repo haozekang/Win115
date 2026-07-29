@@ -34,9 +34,11 @@ namespace Win115
         private const int RestoreWindowCommand = 9;
 
         private readonly AppWindow _appWindow;
+        private readonly SystemTrayService _systemTray;
         private readonly MainViewModel viewModel;
         private bool _isExitConfirmationOpen;
         private bool _isExitAllowed;
+        private bool _isExitRequested;
 
         public MainWindow()
         {
@@ -59,6 +61,9 @@ namespace Win115
             viewModel.SelectedItem = viewModel.MenuItems?.FirstOrDefault();
             _appWindow.SetIcon("Assets/favicon.ico");
             _appWindow.Closing += AppWindow_Closing;
+            _systemTray = new SystemTrayService(hwnd);
+            _systemTray.RestoreRequested += ShowAndActivate;
+            _systemTray.ExitRequested += RequestExit;
 
             _ = LoadSystemConfigAsync();
         }
@@ -82,8 +87,17 @@ namespace Win115
 
         private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
         {
+            var system = App.Resolve<SystemInfoModel>();
+            if (!_isExitRequested && system.CloseToTray)
+            {
+                args.Cancel = true;
+                HideToTray();
+                return;
+            }
+
             if (_isExitAllowed || !HasActiveTransferTasks())
             {
+                _systemTray.Dispose();
                 return;
             }
 
@@ -177,6 +191,10 @@ namespace Win115
                 col,
                 UploadSettings.MaxConcurrentTasksKey,
                 UploadSettings.DefaultMaxConcurrentTasks);
+            var closeToTray = ReadBoolSetting(
+                col,
+                WindowSettings.CloseToTrayKey,
+                WindowSettings.DefaultCloseToTray);
             await DispatcherQueue.EnqueueAsync(() =>
             {
                 _system.ApiRateLimit = Math.Clamp(apiRateLimit, 0, ApiSettings.MaxRateLimit);
@@ -188,6 +206,7 @@ namespace Win115
                     uploadConcurrentTasks,
                     1,
                     UploadSettings.MaxConcurrentTasks);
+                _system.CloseToTray = closeToTray;
             });
         }
 
@@ -195,6 +214,12 @@ namespace Win115
         {
             var setting = collection.Query().Where(item => item.Type == key).SingleOrDefault();
             return int.TryParse(setting?.Value, out var value) ? value : defaultValue;
+        }
+
+        private static bool ReadBoolSetting(ILiteCollection<SystemEntity> collection, string key, bool defaultValue)
+        {
+            var setting = collection.Query().Where(item => item.Type == key).SingleOrDefault();
+            return bool.TryParse(setting?.Value, out var value) ? value : defaultValue;
         }
 
         private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
@@ -241,19 +266,30 @@ namespace Win115
 
         private void btn_close_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            var system = App.Resolve<SystemInfoModel>();
+            if (system.CloseToTray)
+            {
+                HideToTray();
+                return;
+            }
+
+            RequestExit();
         }
 
         private void btn_min_Click(object sender, RoutedEventArgs e)
         {
-            var hwnd = WindowNative.GetWindowHandle(this);
-            var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-            var appWindow = AppWindow.GetFromWindowId(windowId);
+            HideToTray();
+        }
 
-            if (appWindow.Presenter is OverlappedPresenter presenter)
-            {
-                presenter.Minimize();
-            }
+        private void HideToTray()
+        {
+            _appWindow.Hide();
+        }
+
+        private void RequestExit()
+        {
+            _isExitRequested = true;
+            Close();
         }
 
         private void btn_max_Click(object sender, RoutedEventArgs e)

@@ -109,6 +109,14 @@ namespace Win115.ViewModels
             await App.ShowMessageBar("上传设置已保存", "设置");
         }
 
+        [RelayCommand]
+        public async Task SaveWindowSettings()
+        {
+            var collection = _db.GetCollection<SystemEntity>(CollectionResource.System);
+            SaveSetting(collection, WindowSettings.CloseToTrayKey, System.CloseToTray.ToString());
+            await App.ShowMessageBar("窗口设置已保存", "设置");
+        }
+
         private static void SaveSetting(ILiteCollection<SystemEntity> collection, string key, string value)
         {
             var setting = collection.Query().Where(item => item.Type == key).SingleOrDefault();

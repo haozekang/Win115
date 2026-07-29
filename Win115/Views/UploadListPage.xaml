@@ -102,6 +102,11 @@
                                     Text="恢复"
                                     Visibility="{x:Bind ShowStartButton, Mode=OneWay}" />
                                 <MenuFlyoutItem
+                                    Command="{x:Bind RestartCommand}"
+                                    Icon="{ui:FontIcon Glyph='&#xE72C;'}"
+                                    Text="重试"
+                                    Visibility="{x:Bind ShowRestartButton, Mode=OneWay}" />
+                                <MenuFlyoutItem
                                     Command="{x:Bind OpenLocalCommand}"
                                     Icon="{ui:FontIcon Glyph='&#xE838;'}"
                                     Text="打开本地" />
@@ -155,6 +160,15 @@
                                 Visibility="{x:Bind ShowStartButton, Mode=OneWay}">
                                 <Button.Content>
                                     <FontIcon FontSize="13" Glyph="&#xE768;" />
+                                </Button.Content>
+                            </Button>
+                            <Button
+                                Padding="5"
+                                Command="{x:Bind RestartCommand}"
+                                ToolTipService.ToolTip="重试"
+                                Visibility="{x:Bind ShowRestartButton, Mode=OneWay}">
+                                <Button.Content>
+                                    <FontIcon FontSize="13" Glyph="&#xE72C;" />
                                 </Button.Content>
                             </Button>
                             <Button

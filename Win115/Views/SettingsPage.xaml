@@ -54,10 +54,11 @@
                 MinWidth="180"
                 Content="API 设置"
                 Tag="api" />
-            <!--<controls:SegmentedItem
+            <controls:SegmentedItem
                 MinWidth="180"
-                Content="常规设置"
+                Content="窗口设置"
                 Tag="system" />
+            <!--
             <controls:SegmentedItem
                 MinWidth="180"
                 Content="视频播放器设置"
@@ -117,8 +118,24 @@
                 </ScrollViewer>
             </controls:Case>
             <controls:Case Value="system">
-                <ScrollViewer animations:Implicit.HideAnimations="{StaticResource HideTransitions}" animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}">
-                    <TextBlock VerticalAlignment="Center" Text="This is the Download panel" />
+                <ScrollViewer Padding="16,0" HorizontalContentAlignment="Stretch" animations:Implicit.HideAnimations="{StaticResource HideTransitions}" animations:Implicit.ShowAnimations="{StaticResource ShowTransitions}">
+                    <StackPanel HorizontalAlignment="Stretch" Spacing="8">
+                        <controls:SettingsCard
+                            Description="开启后，点击右上角关闭按钮会隐藏窗口并继续在后台传输；关闭后将退出程序"
+                            Header="关闭按钮行为"
+                            HeaderIcon="{ui:FontIcon Glyph='&#xE7E8;'}">
+                            <ToggleSwitch
+                                IsOn="{x:Bind viewModel.System.CloseToTray, Mode=TwoWay}"
+                                OffContent="退出程序"
+                                OnContent="最小化到托盘" />
+                        </controls:SettingsCard>
+                        <Button
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Right"
+                            Command="{x:Bind viewModel.SaveWindowSettingsCommand}"
+                            Content="保存设置"
+                            Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
                 </ScrollViewer>
             </controls:Case>
             <controls:Case Value="download">

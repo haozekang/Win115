@@ -522,33 +522,41 @@ namespace Win115.ViewModels
         {
             var root = new DirectoryInfo(folderPath);
             var rootDirectoryId = await CreateRemoteFolderAsync(root.Name, targetDirectoryId);
-            var parentTaskId = await uploadViewModel.BeginFolderTaskAsync(root.Name, root.FullName, targetDirectoryId);
+            var parentTaskId = await uploadViewModel.BeginFolderTaskAsync(root.Name, root.FullName, rootDirectoryId);
             var createdFolderCount = 1;
             var queuedFileCount = 0;
             long totalSize = 0;
             var pendingDirectories = new Queue<(DirectoryInfo LocalDirectory, string RemoteDirectoryId)>();
             pendingDirectories.Enqueue((root, rootDirectoryId));
 
-            while (pendingDirectories.Count > 0)
+            try
             {
-                var current = pendingDirectories.Dequeue();
-                foreach (var directory in current.LocalDirectory.EnumerateDirectories())
+                while (pendingDirectories.Count > 0)
                 {
-                    var remoteDirectoryId = await CreateRemoteFolderAsync(directory.Name, current.RemoteDirectoryId);
-                    createdFolderCount++;
-                    pendingDirectories.Enqueue((directory, remoteDirectoryId));
+                    var current = pendingDirectories.Dequeue();
+                    foreach (var directory in current.LocalDirectory.EnumerateDirectories())
+                    {
+                        var remoteDirectoryId = await CreateRemoteFolderAsync(directory.Name, current.RemoteDirectoryId);
+                        createdFolderCount++;
+                        pendingDirectories.Enqueue((directory, remoteDirectoryId));
+                    }
+
+                    foreach (var file in current.LocalDirectory.EnumerateFiles())
+                    {
+                        await uploadViewModel.AddTask(file.FullName, current.RemoteDirectoryId, parentTaskId);
+                        queuedFileCount++;
+                        totalSize += file.Length;
+                    }
                 }
 
-                foreach (var file in current.LocalDirectory.EnumerateFiles())
-                {
-                    await uploadViewModel.AddTask(file.FullName, current.RemoteDirectoryId, parentTaskId);
-                    queuedFileCount++;
-                    totalSize += file.Length;
-                }
+                uploadViewModel.CompleteFolderCollection(parentTaskId, queuedFileCount, totalSize);
+                return (queuedFileCount, createdFolderCount);
             }
-
-            uploadViewModel.CompleteFolderCollection(parentTaskId, queuedFileCount, totalSize);
-            return (queuedFileCount, createdFolderCount);
+            catch
+            {
+                uploadViewModel.MarkFolderCollectionFailed(parentTaskId);
+                throw;
+            }
         }
 
         private static async Task<string> CreateRemoteFolderAsync(string folderName, string parentDirectoryId)
@@ -774,7 +782,7 @@ namespace Win115.ViewModels
             const int pageSize = 1150;
             var rootDirectory = Path.Combine(targetDirectory, SanitizePathSegment(folder.Name!));
             Directory.CreateDirectory(rootDirectory);
-            var parentTaskId = await _downloadListViewModel.BeginFolderTaskAsync(folder.Name!, rootDirectory);
+            var parentTaskId = await _downloadListViewModel.BeginFolderTaskAsync(folder.Name!, rootDirectory, folder.Id!);
 
             var pendingFolders = new Queue<(string Id, string Directory)>();
             pendingFolders.Enqueue((folder.Id!, rootDirectory));
@@ -782,53 +790,152 @@ namespace Win115.ViewModels
             var totalFiles = 0;
             long totalSize = 0;
 
-            while (pendingFolders.Count > 0)
+            try
             {
-                var current = pendingFolders.Dequeue();
-                long offset = 0;
-                long totalCount;
-                FDataDTO[] entries;
-                do
+                while (pendingFolders.Count > 0)
                 {
-                    var dto = await GetFolderPageAsync(current.Id, offset, pageSize);
-                    entries = dto.Data ?? [];
-                    totalCount = dto.Count ?? entries.LongLength;
-
-                    foreach (var entry in entries)
+                    var current = pendingFolders.Dequeue();
+                    long offset = 0;
+                    long totalCount;
+                    FDataDTO[] entries;
+                    do
                     {
-                        if (entry.FN.IsBlank())
-                        {
-                            continue;
-                        }
+                        var dto = await GetFolderPageAsync(current.Id, offset, pageSize);
+                        entries = dto.Data ?? [];
+                        totalCount = dto.Count ?? entries.LongLength;
 
-                        var safeName = SanitizePathSegment(entry.FN!);
-                        if (entry.FC == "0")
+                        foreach (var entry in entries)
                         {
-                            if (entry.FId.IsBlank())
+                            if (entry.FN.IsBlank())
                             {
                                 continue;
                             }
 
-                            var childDirectory = Path.Combine(current.Directory, safeName);
-                            Directory.CreateDirectory(childDirectory);
-                            pendingFolders.Enqueue((entry.FId!, childDirectory));
+                            var safeName = SanitizePathSegment(entry.FN!);
+                            if (entry.FC == "0")
+                            {
+                                if (entry.FId.IsBlank()) continue;
+                                var childDirectory = Path.Combine(current.Directory, safeName);
+                                Directory.CreateDirectory(childDirectory);
+                                pendingFolders.Enqueue((entry.FId!, childDirectory));
+                            }
+                            else if (entry.PC.IsNotBlank())
+                            {
+                                await _downloadListViewModel.AddTask(entry.PC!, safeName, entry.FS, current.Directory, parentTaskId: parentTaskId);
+                                added = true;
+                                totalFiles++;
+                                totalSize += entry.FS ?? 0;
+                            }
                         }
-                        else if (entry.PC.IsNotBlank())
-                        {
-                            await _downloadListViewModel.AddTask(entry.PC!, safeName, entry.FS, current.Directory, parentTaskId: parentTaskId);
-                            added = true;
-                            totalFiles++;
-                            totalSize += entry.FS ?? 0;
-                        }
-                    }
 
-                    offset += entries.LongLength;
+                        offset += entries.LongLength;
+                    }
+                    while (offset < totalCount && entries.Length > 0);
                 }
-                while (offset < totalCount && entries.Length > 0);
+
+                _downloadListViewModel.CompleteFolderCollection(parentTaskId, totalFiles, totalSize);
+                return added;
+            }
+            catch
+            {
+                _downloadListViewModel.MarkFolderCollectionFailed(parentTaskId);
+                throw;
+            }
+        }
+
+        public async Task RestartFolderDownloadAsync(DownloadItemModel task)
+        {
+            if (task.TaskId is not > 0 || task.SourceFolderId.IsBlank() || task.SavePath.IsBlank())
+            {
+                return;
             }
 
-            _downloadListViewModel.CompleteFolderCollection(parentTaskId, totalFiles, totalSize);
-            return added;
+            try
+            {
+                const int pageSize = 1150;
+                var pendingFolders = new Queue<(string Id, string Directory)>();
+                pendingFolders.Enqueue((task.SourceFolderId!, task.SavePath!));
+                var totalFiles = 0;
+                long totalSize = 0;
+                task.State = DownloadTaskStateEnum.Queued;
+
+                while (pendingFolders.Count > 0)
+                {
+                    var current = pendingFolders.Dequeue();
+                    Directory.CreateDirectory(current.Directory);
+                    long offset = 0;
+                    long totalCount;
+                    FDataDTO[] entries;
+                    do
+                    {
+                        var dto = await GetFolderPageAsync(current.Id, offset, pageSize);
+                        entries = dto.Data ?? [];
+                        totalCount = dto.Count ?? entries.LongLength;
+                        foreach (var entry in entries)
+                        {
+                            if (entry.FN.IsBlank()) continue;
+                            var safeName = SanitizePathSegment(entry.FN!);
+                            if (entry.FC == "0" && entry.FId.IsNotBlank())
+                            {
+                                pendingFolders.Enqueue((entry.FId!, Path.Combine(current.Directory, safeName)));
+                            }
+                            else if (entry.PC.IsNotBlank())
+                            {
+                                var exists = _downloadListViewModel.DownloadItems.Any(item => item.ParentTaskId == task.TaskId
+                                    && string.Equals(item.PickCode, entry.PC, StringComparison.Ordinal));
+                                if (!exists)
+                                {
+                                    await _downloadListViewModel.AddTask(entry.PC!, safeName, entry.FS, current.Directory, parentTaskId: task.TaskId);
+                                }
+                                totalFiles++;
+                                totalSize += entry.FS ?? 0;
+                            }
+                        }
+                        offset += entries.LongLength;
+                    }
+                    while (offset < totalCount && entries.Length > 0);
+                }
+                _downloadListViewModel.CompleteFolderCollection(task.TaskId.Value, totalFiles, totalSize);
+            }
+            catch (Exception ex)
+            {
+                _downloadListViewModel.MarkFolderCollectionFailed(task.TaskId.Value);
+                await LogHelper.Error(ex);
+            }
+        }
+
+        public async Task RestartFolderUploadAsync(UploadItemModel task)
+        {
+            if (task.TaskId is not > 0 || task.FilePath.IsBlank() || task.ParentId.IsBlank()) return;
+            try
+            {
+                var root = new DirectoryInfo(task.FilePath!);
+                var pending = new Queue<(DirectoryInfo Local, string Remote)>();
+                pending.Enqueue((root, task.ParentId!));
+                var totalFiles = 0;
+                long totalSize = 0;
+                task.State = UploadTaskStateEnum.Queued;
+                while (pending.Count > 0)
+                {
+                    var current = pending.Dequeue();
+                    foreach (var directory in current.Local.EnumerateDirectories())
+                    {
+                        pending.Enqueue((directory, await CreateRemoteFolderAsync(directory.Name, current.Remote)));
+                    }
+                    foreach (var file in current.Local.EnumerateFiles())
+                    {
+                        await App.Resolve<UploadListViewModel>().AddTask(file.FullName, current.Remote, task.TaskId);
+                        totalFiles++;
+                        totalSize += file.Length;
+                    }
+                }
+                App.Resolve<UploadListViewModel>().CompleteFolderCollection(task.TaskId.Value, totalFiles, totalSize);
+            }
+            catch (Exception ex)
+            {
+                App.Resolve<UploadListViewModel>().MarkFolderCollectionFailed(task.TaskId.Value);
+                await LogHelper.Error(ex);
+            }
         }
 
         private static async Task<OpenUfileFilesDTO> GetFolderPageAsync(string folderId, long offset, int limit)

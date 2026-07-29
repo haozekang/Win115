@@ -14,6 +14,7 @@
 		<Nullable>enable</Nullable>
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 		<LangVersion>latest</LangVersion>
+		<Version>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\.version').Trim())</Version>
 	</PropertyGroup>
 	<ItemGroup>
 	  <Content Remove="Assets\favicon.png" />
@@ -77,7 +78,6 @@
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.TokenizingTextBox" Version="8.2.251219" />
 		<PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
 		<PackageReference Include="LiteDB" Version="5.0.21" />
-		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
 		<PackageReference Include="QRCoder" Version="1.8.0" />
 		<PackageReference Include="RestSharp" Version="114.0.0" />
@@ -191,13 +191,13 @@
 		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
 		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
 		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">False</PublishTrimmed>
 		<DefaultLanguage>zh-cn</DefaultLanguage>
 		<ApplicationIcon>Assets\favicon.ico</ApplicationIcon>
 		<GenerateAppInstallerFile>False</GenerateAppInstallerFile>
-		<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+		<!--<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
 		<PackageCertificateThumbprint>83646CAFAE89398968C36FD45B2B3F8C21DD69D5</PackageCertificateThumbprint>
-		<AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+		<AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>-->
 		<AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
 		<GenerateTestArtifacts>False</GenerateTestArtifacts>
 		<AppxBundle>Never</AppxBundle>
@@ -205,5 +205,8 @@
 		<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
 		<GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
 		<AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
+		<UserSecretsId>79df8762-467b-49d2-9c7f-270ca1ce0c58</UserSecretsId>
+		<AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>
+		<AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
 	</PropertyGroup>
 </Project>

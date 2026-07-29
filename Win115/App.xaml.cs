@@ -81,6 +81,7 @@ namespace Win115
             builder.RegisterType<UserInfoModel>().AsSelf().SingleInstance();
             builder.RegisterType<SystemInfoModel>().AsSelf().SingleInstance();
             builder.RegisterType<DownloadEngine>().AsSelf().SingleInstance();
+            builder.RegisterType<UpdateService>().AsSelf().SingleInstance();
 
             //ViewModels
             builder.RegisterType<MainViewModel>().AsSelf().SingleInstance();
@@ -113,6 +114,7 @@ namespace Win115
             _window.Activate();
             WindowHandle = WinRT.Interop.WindowNative.GetWindowHandle(_window);
             Resources["ContentDialogMaxWidth"] = 99999d;
+            _ = Resolve<UpdateService>().CheckForUpdatesAsync();
 
             if (_isActivationPending)
             {

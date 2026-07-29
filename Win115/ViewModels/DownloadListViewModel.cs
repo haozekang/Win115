@@ -551,7 +551,7 @@ namespace Win115.ViewModels
             }
         }
 
-        public async Task<int> BeginFolderTaskAsync(string folderName, string savePath)
+        public async Task<int> BeginFolderTaskAsync(string folderName, string savePath, string sourceFolderId)
         {
             var collection = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
             var entity = new DownloadTaskEntity
@@ -559,6 +559,7 @@ namespace Win115.ViewModels
                 UserId = User.UserId,
                 Name = folderName,
                 SavePath = savePath,
+                SourceFolderId = sourceFolderId,
                 IsFolder = true,
                 Progress = 0,
                 State = DownloadTaskStateEnum.Queued,
@@ -570,6 +571,7 @@ namespace Win115.ViewModels
                 TaskId = id,
                 Name = folderName,
                 SavePath = savePath,
+                SourceFolderId = sourceFolderId,
                 IsFolder = true,
                 Progress = 0,
                 State = DownloadTaskStateEnum.Queued
@@ -649,6 +651,48 @@ namespace Win115.ViewModels
             if (children.All(item => item.State == DownloadTaskStateEnum.Paused)) return DownloadTaskStateEnum.Paused;
             if (children.Any(item => item.State == DownloadTaskStateEnum.Failed)) return DownloadTaskStateEnum.Failed;
             return DownloadTaskStateEnum.Canceled;
+        }
+
+        public async Task RetryTaskAsync(DownloadItemModel task)
+        {
+            var retryTasks = task.IsFolder
+                ? DownloadItems.Where(item => item.ParentTaskId == task.TaskId
+                    && item.State is DownloadTaskStateEnum.Failed or DownloadTaskStateEnum.Canceled).ToList()
+                : [task];
+
+            if (task.IsFolder && retryTasks.Count == 0)
+            {
+                if (task.SourceFolderId.IsNotBlank())
+                {
+                    await App.Resolve<MyFilesViewModel>().RestartFolderDownloadAsync(task);
+                }
+                return;
+            }
+
+            await App.DispatcherQueue!.EnqueueAsync(() =>
+            {
+                foreach (var item in retryTasks)
+                {
+                    item.Speed = 0;
+                    item.RemainingTime = null;
+                    item.State = DownloadTaskStateEnum.Queued;
+                }
+                if (task.IsFolder) task.State = DownloadTaskStateEnum.Queued;
+            });
+            SaveTaskStates(retryTasks, DownloadTaskStateEnum.Queued);
+            UpdateFolderAggregates();
+        }
+
+        public void MarkFolderCollectionFailed(int taskId)
+        {
+            var folder = DownloadItems.FirstOrDefault(item => item.TaskId == taskId);
+            if (folder is not null) folder.State = DownloadTaskStateEnum.Failed;
+            var entity = _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask).FindById(taskId);
+            if (entity is not null)
+            {
+                entity.State = DownloadTaskStateEnum.Failed;
+                _db.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask).Update(entity);
+            }
         }
 
         [RelayCommand]

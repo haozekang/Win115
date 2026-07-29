@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Win115.Dtos;
 
 namespace Win115
@@ -50,5 +53,12 @@ namespace Win115
     [JsonSerializable(typeof(OpenVideoPlayDTO))]
     public partial class AppJsonContext : JsonSerializerContext
     {
+        public static T? Deserialize<T>(string json)
+        {
+            var typeInfo = Default.GetTypeInfo(typeof(T)) as JsonTypeInfo<T>
+                ?? throw new InvalidOperationException($"JSON metadata for {typeof(T)} is not registered.");
+
+            return JsonSerializer.Deserialize(json, typeInfo);
+        }
     }
 }

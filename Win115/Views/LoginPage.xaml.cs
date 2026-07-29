@@ -12,7 +12,6 @@ using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
 using Win115.ViewModels;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -52,12 +51,12 @@ namespace Win115.Views
                 {
                     return;
                 }
-                var resDto = JsonSerializer.Deserialize<ResponseDTO>(res.Content); 
+                var resDto = AppJsonContext.Deserialize<ResponseDTO>(res.Content);
                 if (resDto is null || resDto.Code != 0 || resDto.State != 1)
                 {
                     return;
                 }
-                var qrDto = JsonSerializer.Deserialize<ResponseDTO<OpenAuthDeviceCodeDTO>>(res.Content);
+                var qrDto = AppJsonContext.Deserialize<ResponseDTO<OpenAuthDeviceCodeDTO>>(res.Content);
                 if (qrDto is null || qrDto.Data is null)
                 {
                     return;
@@ -128,7 +127,7 @@ namespace Win115.Views
                 reqDoLogin.AlwaysMultipartFormData = true;
 
                 var resDoLogin = await App.LoginClient.PostAsync(reqDoLogin);
-                var tokenInfo = JsonSerializer.Deserialize<ResponseDTO<OpenDeviceCodeToTokenDTO>>(resDoLogin.Content!);
+                var tokenInfo = AppJsonContext.Deserialize<ResponseDTO<OpenDeviceCodeToTokenDTO>>(resDoLogin.Content!);
                 if (tokenInfo is null || tokenInfo.Data is null
                     || tokenInfo.Data.AccessToken is null
                     || tokenInfo.Data.ExpiresIn == 0
@@ -157,7 +156,7 @@ namespace Win115.Views
                     return;
                 }
                 await LogHelper.Trace(resUserInfo.Content);
-                var userInfo = JsonSerializer.Deserialize<ProResponseDTO<OpenUserInfoDTO>>(resUserInfo.Content!);
+                var userInfo = AppJsonContext.Deserialize<ProResponseDTO<OpenUserInfoDTO>>(resUserInfo.Content!);
                 if (userInfo is null || userInfo.Data is null)
                 {
                     return;

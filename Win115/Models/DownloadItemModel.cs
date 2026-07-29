@@ -78,6 +78,9 @@ namespace Win115.Models
         public partial string? PickCode { get; set; } = string.Empty;
 
         [ObservableProperty]
+        public partial string? SourceFolderId { get; set; } = string.Empty;
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(StateText))]
         [NotifyPropertyChangedFor(nameof(TaskInfoText))]
         [NotifyPropertyChangedFor(nameof(ShowPauseButton))]
@@ -105,7 +108,9 @@ namespace Win115.Models
 
         public Visibility ShowOpenButton => State == DownloadTaskStateEnum.Completed ? Visibility.Visible : Visibility.Collapsed;
 
-        public Visibility ShowActionSeparator => ShowPauseButton == Visibility.Visible || ShowStartButton == Visibility.Visible
+        public Visibility ShowActionSeparator => ShowPauseButton == Visibility.Visible
+            || ShowStartButton == Visibility.Visible
+            || ShowRestartButton == Visibility.Visible
             ? Visibility.Visible
             : Visibility.Collapsed;
 
@@ -189,18 +194,7 @@ namespace Win115.Models
                 return Task.CompletedTask;
             }
 
-            var database = App.Resolve<LiteDatabase>();
-            var collection = database.GetCollection<DownloadTaskEntity>(CollectionResource.DownloadTask);
-            var entity = TaskId is > 0 ? collection.FindById(TaskId) : null;
-            if (entity is not null)
-            {
-                entity.State = DownloadTaskStateEnum.Queued;
-                collection.Update(entity);
-            }
-
-            Speed = 0;
-            State = DownloadTaskStateEnum.Queued;
-            return Task.CompletedTask;
+            return App.Resolve<DownloadListViewModel>().RetryTaskAsync(this);
         }
 
         [RelayCommand]

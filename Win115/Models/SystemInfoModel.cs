@@ -27,5 +27,8 @@ namespace Win115.Models
 
         [ObservableProperty]
         public partial int UploadConcurrentTasks { get; set; } = UploadSettings.DefaultMaxConcurrentTasks;
+
+        [ObservableProperty]
+        public partial bool CloseToTray { get; set; } = WindowSettings.DefaultCloseToTray;
     }
 }

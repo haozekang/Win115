@@ -19,6 +19,7 @@ namespace Win115.Entities
         public string? SavePath { get; set; }
         public string? Url { get; set; }
         public string? PickCode { get; set; }
+        public string? SourceFolderId { get; set; }
         public DownloadTaskStateEnum? State { get; set; }
         public DateTime? CreateTime { get; set; }
     }
@@ -30,6 +31,7 @@ namespace Win115.Entities
         public int Index { get; set; }
         public long Start { get; set; }
         public long End { get; set; }
+        public DownloadSegmentStateEnum State { get; set; }
         public long Downloaded
         {
             get => System.Threading.Interlocked.Read(ref _downloaded);

@@ -1103,6 +1103,49 @@ namespace Win115.ViewModels
             return UploadTaskStateEnum.Canceled;
         }
 
+        public async Task RetryTaskAsync(UploadItemModel task)
+        {
+            var retryTasks = task.IsFolder
+                ? UploadItems.Where(item => item.ParentTaskId == task.TaskId
+                    && item.State is UploadTaskStateEnum.Failed or UploadTaskStateEnum.Canceled).ToList()
+                : [task];
+
+            if (task.IsFolder && retryTasks.Count == 0)
+            {
+                if (task.FilePath.IsNotBlank() && Directory.Exists(task.FilePath))
+                {
+                    await App.Resolve<MyFilesViewModel>().RestartFolderUploadAsync(task);
+                }
+                return;
+            }
+
+            await App.DispatcherQueue!.EnqueueAsync(() =>
+            {
+                foreach (var item in retryTasks)
+                {
+                    _retryCounts.Remove(item);
+                    item.Speed = 0;
+                    item.RemainingTime = null;
+                    item.State = UploadTaskStateEnum.Queued;
+                }
+                if (task.IsFolder) task.State = UploadTaskStateEnum.Queued;
+            });
+            SaveTaskStates(retryTasks, UploadTaskStateEnum.Queued);
+            UpdateTransferMetrics();
+        }
+
+        public void MarkFolderCollectionFailed(int taskId)
+        {
+            var folder = UploadItems.FirstOrDefault(item => item.TaskId == taskId);
+            if (folder is not null) folder.State = UploadTaskStateEnum.Failed;
+            var entity = _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask).FindById(taskId);
+            if (entity is not null)
+            {
+                entity.State = UploadTaskStateEnum.Failed;
+                _db.GetCollection<UploadTaskEntity>(CollectionResource.UploadTask).Update(entity);
+            }
+        }
+
         [RelayCommand]
         public async Task ClearFinish()
         {

@@ -14,16 +14,42 @@
     d:DataContext="{d:DesignInstance vm:AboutViewModel,
                                      IsDesignTimeCreatable=False}"
     mc:Ignorable="d">
-    <ScrollViewer>
-        <controls:MarkdownTextBlock
-            x:Name="md"
-            Grid.Column="0"
-            Config="{x:Bind viewModel.MdConfig, Mode=OneTime}"
-            Text="{x:Bind viewModel.AboutMdText, Mode=OneWay}"
-            UseAutoLinks="True"
-            UseEmphasisExtras="True"
-            UseListExtras="True"
-            UsePipeTables="True"
-            UseTaskLists="True" />
-    </ScrollViewer>
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock
+            x:Name="CurrentVersionText"
+            FontSize="16"
+            FontWeight="SemiBold" />
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button
+                x:Name="CheckUpdateButton"
+                Click="CheckUpdate_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE895;" />
+                    <TextBlock Text="检查更新" />
+                </StackPanel>
+            </Button>
+            <Button Click="OpenMicrosoftStore_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE719;" />
+                    <TextBlock Text="前往 Microsoft Store 更新" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+        <ScrollViewer Grid.Row="2">
+            <controls:MarkdownTextBlock
+                x:Name="md"
+                Config="{x:Bind viewModel.MdConfig, Mode=OneTime}"
+                Text="{x:Bind viewModel.AboutMdText, Mode=OneWay}"
+                UseAutoLinks="True"
+                UseEmphasisExtras="True"
+                UseListExtras="True"
+                UsePipeTables="True"
+                UseTaskLists="True" />
+        </ScrollViewer>
+    </Grid>
 </Page>

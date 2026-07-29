@@ -142,6 +142,7 @@ namespace Win115.Models
         [NotifyPropertyChangedFor(nameof(ShowRemoteButton))]
         [NotifyPropertyChangedFor(nameof(ShowPauseButton))]
         [NotifyPropertyChangedFor(nameof(ShowStartButton))]
+        [NotifyPropertyChangedFor(nameof(ShowRestartButton))]
         [NotifyPropertyChangedFor(nameof(StateText))]
         [NotifyPropertyChangedFor(nameof(TaskInfoText))]
         public partial UploadTaskStateEnum? State { get; set; } = UploadTaskStateEnum.Canceled;
@@ -149,10 +150,12 @@ namespace Win115.Models
         public Visibility ShowRemoteButton => State == UploadTaskStateEnum.Completed ? Visibility.Visible : Visibility.Collapsed;
         public Visibility ShowPauseButton => State == UploadTaskStateEnum.Uploading
             || State == UploadTaskStateEnum.Queued
-            || State == UploadTaskStateEnum.Failed
             ? Visibility.Visible
             : Visibility.Collapsed;
         public Visibility ShowStartButton => State == UploadTaskStateEnum.Paused ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility ShowRestartButton => State is UploadTaskStateEnum.Failed or UploadTaskStateEnum.Canceled
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         [ObservableProperty]
         public partial bool ShowDeleteTip { get; set; } = false;
@@ -169,6 +172,17 @@ namespace Win115.Models
         {
             if (State == UploadTaskStateEnum.Paused) State = UploadTaskStateEnum.Queued;
             return Task.CompletedTask;
+        }
+
+        [RelayCommand]
+        private Task Restart()
+        {
+            if (State is not UploadTaskStateEnum.Failed and not UploadTaskStateEnum.Canceled)
+            {
+                return Task.CompletedTask;
+            }
+
+            return App.Resolve<UploadListViewModel>().RetryTaskAsync(this);
         }
 
         [RelayCommand]

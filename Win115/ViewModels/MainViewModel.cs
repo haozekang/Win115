@@ -8,9 +8,11 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using RestSharp;
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
 using Win115.Dtos;
@@ -19,6 +21,7 @@ using Win115.Enums;
 using Win115.Helpers;
 using Win115.Models;
 using Win115.Properties;
+using Win115.Services;
 using Win115.Views;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -59,11 +62,27 @@ namespace Win115.ViewModels
         [ObservableProperty]
         public partial object? SelectedItem { get; set; } = null;
 
-        public MainViewModel(UserInfoModel user, LiteDatabase db, DownloadListViewModel downloadListViewModel)
+        public MainViewModel(UserInfoModel user, LiteDatabase db, DownloadListViewModel downloadListViewModel, UpdateService updateService)
         {
             User = user;
             _db = db;
             _downloadListViewModel = downloadListViewModel;
+            var aboutItem = FooterMenuItems.First(item => (MenuKeys)item.Tag == MenuKeys.About);
+            var updateBadge = new InfoBadge
+            {
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Red),
+                Visibility = Visibility.Collapsed
+            };
+            aboutItem.InfoBadge = updateBadge;
+            updateService.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(UpdateService.IsUpdateAvailable))
+                {
+                    updateBadge.Visibility = updateService.IsUpdateAvailable
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                }
+            };
             _ = AutoLoginAsync();
         }
 
@@ -189,7 +208,8 @@ namespace Win115.ViewModels
                     },
                     SavePath = down.SavePath,
                     PickCode = down.PickCode,
-                    Url = down.Url
+                    Url = down.Url,
+                    SourceFolderId = down.SourceFolderId
                 });
             }
 
