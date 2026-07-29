@@ -101,7 +101,7 @@
 
 ## 本地开发
 
-开发环境需要 Windows 10 1809 或更高版本、Visual Studio 2022（安装“.NET 桌面开发”和“Windows 应用 SDK”相关组件）以及 .NET 10 SDK。
+开发环境需要 Windows 10 1809 或更高版本、Visual Studio 2026（安装“.NET 桌面开发”和“Windows 应用 SDK”相关组件）以及 .NET 10 SDK。
 
 克隆项目后，用 Visual Studio 打开 `Win115.slnx`，还原 NuGet 包，选择 `x64` 或 `ARM64` 平台即可运行。也可以在项目根目录执行：
 
