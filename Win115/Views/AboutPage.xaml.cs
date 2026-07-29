@@ -99,6 +99,26 @@ namespace Win115.Views
             }
         }
 
+        private async void OpenGitHub_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var launched = await Windows.System.Launcher.LaunchUriAsync(
+                    new Uri("https://github.com/haozekang/Win115"));
+                if (!launched)
+                {
+                    await App.ShowMessageBar("无法打开 GitHub 项目主页。", "打开失败",
+                        InfoBarSeverity.Warning, autoClose: TimeSpan.FromSeconds(4));
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+                await App.ShowMessageBar("无法打开 GitHub 项目主页。", "打开失败",
+                    InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(4));
+            }
+        }
+
         private async void MarkdownTextBlock_OnLinkClicked(object? sender, LinkClickedEventArgs e)
         {
             try

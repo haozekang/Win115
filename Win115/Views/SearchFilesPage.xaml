@@ -17,28 +17,22 @@
     <Page.Resources>
         <MenuFlyout x:Key="item_menu">
             <MenuFlyoutItem
-                Click="menu_open_Click"
-                Icon="{ui:FontIcon Glyph='&#xE838;'}"
-                Text="打开" />
+                Command="{x:Bind viewModel.DownloadRightMenuCommand}"
+                CommandParameter="{Binding .}"
+                Icon="{ui:FontIcon Glyph='&#xE896;'}"
+                Text="下载" />
             <MenuFlyoutItem
-                Command="{x:Bind viewModel.RefreshFilesCommand}"
-                Icon="{ui:FontIcon Glyph='&#xE72C;'}"
-                Text="刷新" />
-            <MenuFlyoutSeparator />
-            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE896;'}" Text="下载" />
-            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE898;'}" Text="上传文件" />-->
-            <MenuFlyoutSeparator />
-            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8C8;'}" Text="复制到" />
-            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8DE;'}" Text="移动到" />
-            <MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE8AC;'}" Text="重命名" />
-            <MenuFlyoutSeparator />-->
-            <!--<MenuFlyoutItem Icon="{ui:FontIcon Glyph='&#xE946;'}" Text="详情" />-->
+                Command="{x:Bind viewModel.JumpToCommand}"
+                CommandParameter="{Binding .}"
+                Icon="{ui:FontIcon Glyph='&#xE8A7;'}"
+                Text="跳转到" />
             <MenuFlyoutItem
-                Foreground="Red"
-                Icon="{ui:FontIcon Glyph='&#xE74D;'}"
-                Text="删除" />
+                Command="{x:Bind viewModel.ShowDetailCommand}"
+                CommandParameter="{Binding .}"
+                Icon="{ui:FontIcon Glyph='&#xE946;'}"
+                Text="详情" />
         </MenuFlyout>
-        <DataTemplate x:Key="items_header" x:DataType="vm:MyFilesViewModel">
+        <DataTemplate x:Key="items_header" x:DataType="vm:SearchFilesViewModel">
             <controls:DataTable Margin="10,0,0,0">
                 <controls:DataColumn
                     MinWidth="120"
@@ -154,6 +148,11 @@
                         </Grid>
                     </controls:DataColumn.Content>
                 </controls:DataColumn>
+                <controls:DataColumn
+                    MinWidth="120"
+                    DesiredWidth="120"
+                    FontWeight="Bold"
+                    Content="操作" />
             </controls:DataTable>
         </DataTemplate>
     </Page.Resources>
@@ -318,6 +317,32 @@
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
                                 Text="{x:Bind UpdateTimeText, Mode=OneWay}" />
+                            <StackPanel
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal"
+                                Spacing="2">
+                                <Button
+                                    Width="32"
+                                    Height="32"
+                                    Click="action_download_Click"
+                                    ToolTipService.ToolTip="下载">
+                                    <FontIcon FontSize="14" Glyph="&#xE896;" />
+                                </Button>
+                                <Button
+                                    Width="32"
+                                    Height="32"
+                                    Click="action_jump_Click"
+                                    ToolTipService.ToolTip="跳转到">
+                                    <FontIcon FontSize="14" Glyph="&#xE8A7;" />
+                                </Button>
+                                <Button
+                                    Width="32"
+                                    Height="32"
+                                    Click="action_detail_Click"
+                                    ToolTipService.ToolTip="详情">
+                                    <FontIcon FontSize="14" Glyph="&#xE946;" />
+                                </Button>
+                            </StackPanel>
                         </controls:DataRow>
                     </DataTemplate>
                 </ListView.ItemTemplate>

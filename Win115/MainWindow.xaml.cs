@@ -313,7 +313,7 @@ namespace Win115
 
         public async Task ShowMessageBar(string msg, string title, InfoBarSeverity severity = InfoBarSeverity.Informational, bool showClose = true, TimeSpan? autoClose = null)
         {
-            DispatcherQueue.TryEnqueue(() => 
+            await DispatcherQueue.EnqueueAsync(() =>
             {
                 messageBar.Message = msg;
                 messageBar.Title = title;

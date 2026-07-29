@@ -6,7 +6,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using RestSharp;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Tanovo.ExtensionMethods;
@@ -22,6 +24,7 @@ namespace Win115.ViewModels
     public partial class SearchFilesViewModel : ObservableRecipient
     {
         private DownloadListViewModel _downloadListViewModel { get; set; }
+        private MyFilesViewModel _myFilesViewModel { get; set; }
 
         [ObservableProperty]
         public partial UserInfoModel User { get; set; }
@@ -65,11 +68,12 @@ namespace Win115.ViewModels
         [ObservableProperty]
         public partial ObservableCollection<MyFileItemModel> SelectedFileItems { get; set; }
 
-        public SearchFilesViewModel(UserInfoModel user, SystemInfoModel system, DownloadListViewModel downloadListViewModel)
+        public SearchFilesViewModel(UserInfoModel user, SystemInfoModel system, DownloadListViewModel downloadListViewModel, MyFilesViewModel myFilesViewModel)
         {
             User = user;
             System = system;
             _downloadListViewModel = downloadListViewModel;
+            _myFilesViewModel = myFilesViewModel;
             FileItems = new();
             SelectedFileItems = new();
 
@@ -179,6 +183,10 @@ namespace Win115.ViewModels
         [RelayCommand]
         public async Task DownloadSelected()
         {
+            if (!User.IsLogin)
+            {
+                return;
+            }
             if (SelectedFileItems.IsBlank())
             {
                 return;
@@ -188,21 +196,196 @@ namespace Win115.ViewModels
                 await App.ShowMessageBar("请先在设置中设定下载默认目录！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
                 return;
             }
-            bool add = false;
-            foreach (var item in SelectedFileItems)
-            {
-                // 目录暂不支持
-                if (item.FileType == "0")
-                {
-                    continue;
-                }
-                add = true;
-                await _downloadListViewModel.AddTask(item.PickCode!, item.Name!, item.Size, System.DownloadDirPath);
-            }
+            bool add = await AddDownloadTasksAsync(SelectedFileItems, System.DownloadDirPath!);
             if (add)
             {
                 await App.JumpPage(MenuKeys.DownloadList);
             }
+        }
+
+        [RelayCommand]
+        public async Task DownloadRightMenu(object? item)
+        {
+            if (!User.IsLogin || (SelectedFileItems.IsBlank() && item is null)) return;
+            if (System.DownloadDirPath.IsBlank())
+            {
+                await App.ShowMessageBar("请先在设置中设定下载默认目录！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                return;
+            }
+
+            var items = SelectedFileItems.IsNotBlank()
+                ? SelectedFileItems.ToList()
+                : item is MyFileItemModel file ? [file] : [];
+            if (await AddDownloadTasksAsync(items, System.DownloadDirPath!))
+            {
+                await App.JumpPage(MenuKeys.DownloadList);
+            }
+        }
+
+        [RelayCommand]
+        public async Task DownloadItem(object? item)
+        {
+            if (!User.IsLogin || item is not MyFileItemModel file)
+            {
+                return;
+            }
+            if (System.DownloadDirPath.IsBlank())
+            {
+                await App.ShowMessageBar("请先在设置中设定下载默认目录！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                return;
+            }
+
+            if (await AddDownloadTasksAsync([file], System.DownloadDirPath!))
+            {
+                await App.JumpPage(MenuKeys.DownloadList);
+            }
+        }
+
+        /// <summary>
+        /// 在“我的文件”中打开目录，或定位文件。
+        /// </summary>
+        [RelayCommand]
+        public async Task JumpTo(object? item)
+        {
+            if (!User.IsLogin || item is not MyFileItemModel file)
+            {
+                return;
+            }
+
+            await App.JumpPage(MenuKeys.MyFiles);
+            await _myFilesViewModel.OpenSearchResultAsync(file);
+        }
+
+        /// <summary>
+        /// 显示搜索结果详情。
+        /// </summary>
+        [RelayCommand]
+        public async Task ShowDetail(object? item)
+        {
+            if (!User.IsLogin || item is not MyFileItemModel file)
+            {
+                return;
+            }
+
+            await _myFilesViewModel.ShowDetailForItemAsync(file);
+        }
+
+        private async Task<bool> AddDownloadTasksAsync(IEnumerable<MyFileItemModel> items, string targetDirectory)
+        {
+            var added = false;
+            IsBusy = true;
+            try
+            {
+                foreach (var item in items.ToList())
+                {
+                    if (item.FileType == "0")
+                    {
+                        added |= await AddFolderDownloadTasksAsync(item, targetDirectory);
+                    }
+                    else if (item.PickCode.IsNotBlank() && item.Name.IsNotBlank())
+                    {
+                        await _downloadListViewModel.AddTask(item.PickCode!, SanitizePathSegment(item.Name!), item.Size, targetDirectory);
+                        added = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
+                await App.ShowMessageBar("获取文件夹内容失败，请稍后重试。", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+            return added;
+        }
+
+        private async Task<bool> AddFolderDownloadTasksAsync(MyFileItemModel folder, string targetDirectory)
+        {
+            if (folder.Id.IsBlank() || folder.Name.IsBlank()) return false;
+
+            const int pageSize = 1150;
+            var rootDirectory = Path.Combine(targetDirectory, SanitizePathSegment(folder.Name!));
+            Directory.CreateDirectory(rootDirectory);
+            var parentTaskId = await _downloadListViewModel.BeginFolderTaskAsync(folder.Name!, rootDirectory, folder.Id!);
+            var pendingFolders = new Queue<(string Id, string Directory)>();
+            pendingFolders.Enqueue((folder.Id!, rootDirectory));
+            var totalFiles = 0;
+            long totalSize = 0;
+
+            try
+            {
+                while (pendingFolders.Count > 0)
+                {
+                    var current = pendingFolders.Dequeue();
+                    long offset = 0;
+                    long totalCount;
+                    FDataDTO[] entries;
+                    do
+                    {
+                        var dto = await GetFolderPageAsync(current.Id, offset, pageSize);
+                        entries = dto.Data ?? [];
+                        totalCount = dto.Count ?? entries.LongLength;
+                        foreach (var entry in entries)
+                        {
+                            if (entry.FN.IsBlank()) continue;
+                            var safeName = SanitizePathSegment(entry.FN!);
+                            if (entry.FC == "0" && entry.FId.IsNotBlank())
+                            {
+                                var childDirectory = Path.Combine(current.Directory, safeName);
+                                Directory.CreateDirectory(childDirectory);
+                                pendingFolders.Enqueue((entry.FId!, childDirectory));
+                            }
+                            else if (entry.PC.IsNotBlank())
+                            {
+                                await _downloadListViewModel.AddTask(entry.PC!, safeName, entry.FS, current.Directory, parentTaskId: parentTaskId);
+                                totalFiles++;
+                                totalSize += entry.FS ?? 0;
+                            }
+                        }
+                        offset += entries.LongLength;
+                    }
+                    while (offset < totalCount && entries.Length > 0);
+                }
+
+                _downloadListViewModel.CompleteFolderCollection(parentTaskId, totalFiles, totalSize);
+                return true;
+            }
+            catch
+            {
+                _downloadListViewModel.MarkFolderCollectionFailed(parentTaskId);
+                throw;
+            }
+        }
+
+        private static async Task<OpenUfileFilesDTO> GetFolderPageAsync(string folderId, long offset, int limit)
+        {
+            var request = new RestRequest(ApiResource.OpenUfileFiles);
+            request.AddQueryParameter("cid", folderId);
+            request.AddQueryParameter("limit", limit);
+            request.AddQueryParameter("offset", offset);
+            request.AddQueryParameter("show_dir", 1);
+            var response = await App.ProApiClient.GetAsync(request);
+            if (!response.IsSuccessful || response.Content.IsBlank())
+            {
+                throw new InvalidOperationException("Failed to retrieve the folder contents.");
+            }
+
+            var dto = JsonSerializer.Deserialize<OpenUfileFilesDTO>(response.Content);
+            if (dto is null || !dto.State)
+            {
+                throw new InvalidOperationException(dto?.Message ?? "Failed to retrieve the folder contents.");
+            }
+            return dto;
+        }
+
+        private static string SanitizePathSegment(string value)
+        {
+            var invalidCharacters = Path.GetInvalidFileNameChars();
+            var sanitized = new string(value.Select(character => invalidCharacters.Contains(character) ? '_' : character).ToArray()).Trim();
+            sanitized = sanitized.TrimEnd('.');
+            return sanitized is "" or "." or ".." ? "_" : sanitized;
         }
 
         /// <summary>

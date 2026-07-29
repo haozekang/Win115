@@ -1,6 +1,6 @@
 # 115 Plus
 
-115 Plus 是基于 [115 开放平台](https://open.115.com/) 开发的 Windows 桌面客户端，使用 WinUI 构建。它提供文件管理、上传下载、OSS 分片上传、视频播放等常用能力，让 115 网盘在桌面端使用更加顺手。
+115 Plus 是基于 [115 开放平台](https://open.115.com/) 开发的第三方开源 Windows 桌面客户端，使用 .NET 10 和 WinUI 3 构建。它集成文件管理、搜索、上传下载、云下载、图片预览和视频在线播放等常用能力，让 115 网盘在桌面端使用更加顺手。
 
 项目地址：[haozekang/Win115](https://github.com/haozekang/Win115)
 
@@ -12,7 +12,7 @@
 
 **[打开 Microsoft Store 产品页面](https://apps.microsoft.com/detail/9pkkzzp19p42?hl=zh-CN&gl=CN)**
 
-当前版本面向 Windows 平台，支持 ARM 和 x64 架构。打开产品页面后，点击“获取”即可完成安装。
+当前版本面向 Windows 10/11，支持 ARM64 和 x64 架构。打开产品页面后，点击“获取”即可完成安装。
 
 ## 功能概览
 
@@ -30,6 +30,7 @@
 - [x] 新建文件夹
 - [x] 文件详情查看
 - [x] 文件搜索
+- [x] 从搜索结果直接下载、查看详情或定位文件
 - [x] 文件和文件夹复制、移动、重命名
 
 ### 文件下载
@@ -79,6 +80,7 @@
 - [x] 可配置关闭按钮行为
 - [x] 启动时异步检查新版本
 - [x] 关于页面手动检查更新并跳转 Microsoft Store
+- [x] 关于页面快速打开 GitHub 项目主页
 
 ## 版本与更新
 
@@ -97,9 +99,18 @@
 
 更多界面截图请参见 [`imgs`](./imgs) 目录。
 
-## 开发说明
+## 本地开发
 
-项目当前基于 .NET 10 和 WinUI 3，主要面向 Windows 10/11，支持 x64 与 ARM64 架构。后续计划基于 Avalonia UI 探索跨平台版本。
+开发环境需要 Windows 10 1809 或更高版本、Visual Studio 2022（安装“.NET 桌面开发”和“Windows 应用 SDK”相关组件）以及 .NET 10 SDK。
+
+克隆项目后，用 Visual Studio 打开 `Win115.slnx`，还原 NuGet 包，选择 `x64` 或 `ARM64` 平台即可运行。也可以在项目根目录执行：
+
+```powershell
+dotnet restore Win115.slnx
+dotnet build Win115.slnx -c Debug -p:Platform=x64
+```
+
+项目当前主要面向 Windows 10/11。后续计划基于 Avalonia UI 探索跨平台版本。
 
 ## 致谢
 

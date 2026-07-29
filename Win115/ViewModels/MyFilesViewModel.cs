@@ -172,6 +172,15 @@ namespace Win115.ViewModels
                 return;
             }
             var item = SelectedFileItems.First();
+            await ShowDetailForItemAsync(item);
+        }
+
+        public async Task ShowDetailForItemAsync(MyFileItemModel item)
+        {
+            if (!User.IsLogin || item.Id.IsBlank())
+            {
+                return;
+            }
             var req = new RestRequest(ApiResource.OpenFolderGetInfo);
             req.AddQueryParameter("file_id", item.Id);
             var res = await App.ProApiClient.GetAsync(req);
@@ -1336,6 +1345,65 @@ namespace Win115.ViewModels
             }
             catch
             {
+            }
+        }
+
+        public async Task OpenSearchResultAsync(MyFileItemModel item)
+        {
+            if (!User.IsLogin || item.Id.IsBlank())
+            {
+                return;
+            }
+
+            try
+            {
+                var req = new RestRequest(ApiResource.OpenFolderGetInfo);
+                req.AddQueryParameter("file_id", item.Id);
+                var res = await App.ProApiClient.GetAsync(req);
+                if (!res.IsSuccessful || res.Content.IsBlank())
+                {
+                    return;
+                }
+
+                var dto = JsonSerializer.Deserialize<ProResponseDTO<OpenFolderGetInfoDTO?>>(res.Content);
+                var info = dto?.Data;
+                if (dto?.State != true || info?.Paths is null)
+                {
+                    await App.ShowMessageBar(dto?.Message ?? "目录信息获取失败！", "错误", InfoBarSeverity.Error, autoClose: TimeSpan.FromSeconds(5));
+                    return;
+                }
+
+                PathItems.Clear();
+                foreach (var path in info.Paths)
+                {
+                    PathItems.Add(new SelectOptionItem(path.FileId!.Value, path.FileName!));
+                }
+
+                if (item.FileType == "0" && !PathItems.Any(path => $"{path.Id}" == item.Id))
+                {
+                    PathItems.Add(new SelectOptionItem(item.Id!, item.Name ?? info.FileName ?? "文件夹"));
+                }
+
+                await RefreshFiles();
+                if (item.FileType == "0")
+                {
+                    return;
+                }
+
+                while (!FileItems.Any(file => file.Id == item.Id) && FileItems.HasMoreItems)
+                {
+                    await FileItems.LoadMoreItemsAsync(100);
+                }
+
+                var target = FileItems.FirstOrDefault(file => file.Id == item.Id);
+                if (target is not null)
+                {
+                    await App.SelectedItemAndScrollIntoView(FileItems.IndexOf(target), target);
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogHelper.Error(ex);
             }
         }
 

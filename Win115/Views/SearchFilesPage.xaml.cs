@@ -75,6 +75,34 @@ namespace Win115.Views
                 {
                     item = viewModel.FileItems.FirstOrDefault(x => x.Id == id);
                 }
+                if (item is not null)
+                {
+                    await viewModel.JumpToCommand.ExecuteAsync(item);
+                }
+            }
+        }
+
+        private async void action_download_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewModel is not null && sender is FrameworkElement { DataContext: MyFileItemModel item })
+            {
+                await viewModel.DownloadItemCommand.ExecuteAsync(item);
+            }
+        }
+
+        private async void action_jump_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewModel is not null && sender is FrameworkElement { DataContext: MyFileItemModel item })
+            {
+                await viewModel.JumpToCommand.ExecuteAsync(item);
+            }
+        }
+
+        private async void action_detail_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewModel is not null && sender is FrameworkElement { DataContext: MyFileItemModel item })
+            {
+                await viewModel.ShowDetailCommand.ExecuteAsync(item);
             }
         }
 
