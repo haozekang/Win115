@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using Win115.Converters;
 
 namespace Win115.Dtos
 {
@@ -86,6 +87,7 @@ namespace Win115.Dtos
         /// 原文件的父目录id
         /// </summary>
         [JsonPropertyName("cid")]
+        [JsonConverter(typeof(StringOrNumberConverter))]
         public string? ParentId { get; set; }
 
         /// <summary>
