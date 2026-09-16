@@ -26,7 +26,6 @@ bld/
 AppPackages/
 BundleArtifacts/
 Package.StoreAssociation.xml
-Package.appxmanifest
 
 .vs/
 
