@@ -108,6 +108,8 @@ namespace Win115.Views
                         {
                             selectedItem = vm.ImageFileItems.FirstOrDefault(x => x.Id == item.Id);
                         }
+                        // 兜底：确保 ViewModel 的选中项与视图一致，否则上一张/下一张命令不可用
+                        vm.SelectedImageItem = selectedItem;
                         vw.Show();
                         vw.SetSelectedItem(selectedItem);
                     }

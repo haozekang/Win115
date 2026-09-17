@@ -93,12 +93,54 @@
             VerticalScrollBarVisibility="Auto"
             VerticalScrollMode="Auto"
             ZoomMode="Enabled">
+            <ScrollView.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutSubItem Icon="{ui:SymbolIcon Symbol=Save}" Text="另存">
+                        <MenuFlyoutItem Icon="{ui:SymbolIcon Symbol=Copy}" Text="JPEG"
+                                        Command="{x:Bind _viewModel.SaveImageAsCommand}"
+                                        CommandParameter="JPEG"></MenuFlyoutItem>
+                        <MenuFlyoutItem Icon="{ui:SymbolIcon Symbol=Copy}" Text="PNG"
+                                        Command="{x:Bind _viewModel.SaveImageAsCommand}"
+                                        CommandParameter="PNG"></MenuFlyoutItem>
+                        <MenuFlyoutItem Icon="{ui:SymbolIcon Symbol=Copy}" Text="BMP"
+                                        Command="{x:Bind _viewModel.SaveImageAsCommand}"
+                                        CommandParameter="BMP"></MenuFlyoutItem>
+                        <MenuFlyoutItem Icon="{ui:SymbolIcon Symbol=Copy}" Text="TIF"
+                                        Command="{x:Bind _viewModel.SaveImageAsCommand}"
+                                        CommandParameter="TIF"></MenuFlyoutItem>
+                    </MenuFlyoutSubItem>
+                    <MenuFlyoutItem Icon="{ui:SymbolIcon Symbol=Copy}" Text="复制到剪贴板"
+                                    Command="{x:Bind _viewModel.CopyCommand}"></MenuFlyoutItem>
+                    <MenuFlyoutItem Icon="{ui:SymbolIcon Symbol=Delete}" Foreground="Red" Text="删除"
+                                    Command="{x:Bind _viewModel.DeleteCommand}"></MenuFlyoutItem>
+                </MenuFlyout>
+            </ScrollView.ContextFlyout>
             <Image
                 x:Name="img"
                 AutomationProperties.AccessibilityView="Raw"
                 Source="{Binding ElementName=iv, Path=SelectedItem.OriginalImg, Mode=OneWay}"
                 Stretch="Uniform" />
         </ScrollView>
+        <AppBarButton 
+            Grid.Row="1"
+            Margin="20,0,0,0"
+            HorizontalAlignment="Left"
+            LabelPosition="Collapsed"
+            ToolTipService.ToolTip="上一张"
+            VerticalContentAlignment="Center"
+            Icon="{ui:SymbolIcon Symbol=AlignLeft}"
+            Command="{x:Bind _viewModel.PrevImageCommand}"
+            VerticalAlignment="Center"></AppBarButton>
+        <AppBarButton
+            Grid.Row="1"
+            Margin="0,0,20,0"
+            HorizontalAlignment="Right"
+            LabelPosition="Collapsed"
+            ToolTipService.ToolTip="下一张"
+            VerticalContentAlignment="Center"
+            Icon="{ui:SymbolIcon Symbol=AlignRight}"
+            Command="{x:Bind _viewModel.NextImageCommand}"
+            VerticalAlignment="Center"></AppBarButton>
         <ProgressRing
             Grid.Row="1"
             IsActive="{x:Bind _viewModel.IsImageLoading, Mode=OneWay}"
