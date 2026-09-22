@@ -128,7 +128,7 @@
             LabelPosition="Collapsed"
             ToolTipService.ToolTip="上一张"
             VerticalContentAlignment="Center"
-            Icon="{ui:SymbolIcon Symbol=AlignLeft}"
+            Icon="{ui:FontIcon Glyph='&#xE76B;'}"
             Command="{x:Bind _viewModel.PrevImageCommand}"
             VerticalAlignment="Center"></AppBarButton>
         <AppBarButton
@@ -138,7 +138,7 @@
             LabelPosition="Collapsed"
             ToolTipService.ToolTip="下一张"
             VerticalContentAlignment="Center"
-            Icon="{ui:SymbolIcon Symbol=AlignRight}"
+            Icon="{ui:FontIcon Glyph='&#xE76C;'}"
             Command="{x:Bind _viewModel.NextImageCommand}"
             VerticalAlignment="Center"></AppBarButton>
         <ProgressRing
